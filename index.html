@@ -95,13 +95,15 @@ body{font-family:system-ui,-apple-system,sans-serif;font-size:15px;color:#1a1a1a
 <script>
 const CATS=['Income','Bills','Debt','Groceries','Dining','Travel','Clothing','Shopping','Home','Entertainment','Health','Personal Care','Work Expenses','Remittance','Savings','Transfer','Other'];
 const BARCOL={Bills:'#378ADD',Debt:'#E24B4A',Groceries:'#4C9A2A',Dining:'#BA7517',Travel:'#534AB7',Clothing:'#D4537E',Shopping:'#E8873A',Entertainment:'#1D9E75',Other:'#888780',Remittance:'#D85A30','Work Expenses':'#5DCAA5',Home:'#7F77DD','Personal Care':'#EF9F27',Health:'#22A870',Savings:'#1D9E75',Income:'#4C9A2A'};
-const ACC_MAP={'20-26-86 90632368':'Hub'};
+const ACC_MAP={'20-26-86 90632368':'Hub','20-17-22 43623793':'Joint'};
 // CAM UNI HOSP reference numbers in memo identify the source of NHS income
 // 30464712     = Hub monthly salary
 // 30464712-2   = Hub bank shifts
 // 30454770     = Waf monthly salary
 // 30454770-2   = Waf bank shifts
 const NHS_REF_MAP={'30464712-2':{label:'Paycheck Hub Bank',who:'Hub'},'30464712':{label:'Paycheck Hub',who:'Hub'},'30454770-2':{label:'Paycheck Waf Bank',who:'Waf'},'30454770':{label:'Paycheck Waf',who:'Waf'}};
+// Salary refs that define period boundaries (monthly salaries only, not bank shifts)
+const SALARY_REFS=['30464712','30454770'];
 const AMEX_CAT={'Entertainment-Restaurants':'Dining','Entertainment-Bars & Cafes':'Dining','Entertainment-Sports Events':'Entertainment','General Purchases-Groceries':'Groceries','General Purchases-Pharmacies':'Health','General Purchases-Clothing Stores':'Clothing','General Purchases-Computer Supplies':'Shopping','General Purchases-Wholesale Stores':'Groceries','General Purchases-Online Purchases':'Shopping'};
 const DEFAULT_MAPS={'Cooke Curtis':{label:'Rent',cat:'Bills'},'Novuna Personal':{label:'Furniture Village',cat:'Bills'},'EE Limited':{label:'EE (SIM)',cat:'Bills'},'EE Ltd':{label:'EE Broadband',cat:'Bills'},'Scdc':{label:'Council Tax',cat:'Bills'},'Barclayloan':{label:'BarcLoan Waf',cat:'Debt'},'Bloan':{label:'BarcLoan Hub',cat:'Debt'},'B/Card Forward':{label:'Barclaycard Waf',cat:'Debt'},'Mr Rene Inapan':{label:'Barclaycard Hub',cat:'Debt'},'One Utility Bill':{label:'Electricity',cat:'Bills'},'AMERICAN EXP':{label:'Amex Payment',cat:'Transfer'},'PAYMENT RECEIVED':{label:'Amex Payment Received',cat:'Transfer'},'INSTALMENT PLAN FEE':{label:'Plan It Fee',cat:'Debt'},'AMOUNT TRANSFERRED FROM CREDIT':{label:'Plan It Transfer',cat:'Transfer'},'Amazon Prime':{label:'Amazon Prime',cat:'Bills'},'Disney':{label:'Disney+',cat:'Bills'},'Adobe':{label:'Adobe',cat:'Bills'},'Vitality':{label:'Vitality Insurance',cat:'Bills'},'Microsoft':{label:'Microsoft 365',cat:'Bills'},'Tesco':{label:'Tesco',cat:'Groceries'},'Sainsbury':{label:"Sainsbury's",cat:'Groceries'},'Lidl':{label:'Lidl',cat:'Groceries'},'Aldi':{label:'Aldi',cat:'Groceries'},'Co-op':{label:'Co-op',cat:'Groceries'},'Marks Spencer':{label:'M&S',cat:'Groceries'},'Deliveroo':{label:'Deliveroo',cat:'Dining'},'Just Eat':{label:'Just Eat',cat:'Dining'},'Uber Eats':{label:'Uber Eats',cat:'Dining'},'Compass Group':{label:'Compass (Canteen)',cat:'Dining'},'Trainline':{label:'Trainline',cat:'Travel'},'National Rail':{label:'National Rail',cat:'Travel'},'Stagecoach':{label:'Stagecoach',cat:'Travel'},'Spotify':{label:'Spotify',cat:'Entertainment'},'Netflix':{label:'Netflix',cat:'Entertainment'},'Tenpin':{label:'Tenpin Bowling',cat:'Entertainment'},'Wildlife Trust':{label:'Wildlife Trust',cat:'Bills'}};
 const DEFAULT_BILLS=[{name:'Rent',amount:1425,day:21},{name:'Council Tax',amount:192,day:8},{name:'Electricity',amount:250.73,day:7},{name:'EE (SIM)',amount:67.78,day:28},{name:'EE Broadband',amount:44.99,day:21},{name:'Furniture Village',amount:78.30,day:0},{name:'Vitality Insurance',amount:55.14,day:0},{name:'Amazon Prime',amount:8.99,day:27},{name:'Microsoft 365',amount:14.99,day:22},{name:'Disney+',amount:2.50,day:0},{name:'Adobe',amount:9.98,day:0},{name:'Wildlife Trust',amount:2.50,day:6},{name:"SOS Children's Village",amount:16.12,day:0},{name:'HP Instant Ink',amount:1.50,day:0},{name:'Water',amount:181,day:0},{name:'Apple Watch (Hub)',amount:7.50,day:0}];
@@ -124,6 +126,100 @@ function ord(n){const s=['th','st','nd','rd'],v=n%100;return n+(s[(v-20)%10]||s[
 function applyMap(raw){const lo=raw.toLowerCase();for(const[k,v]of Object.entries(S.maps))if(lo.includes(k.toLowerCase()))return v;return null;}
 function calcT(k){const p=getP(k);const txInc=(p.transactions||[]).filter(t=>t.cat==='Income').reduce((s,t)=>s+Number(t.amount||0),0);const manInc=[...(p.income||[]),...(p.extraIncome||[])].reduce((s,i)=>s+Number(i.amount||0),0);const totalIncome=txInc+manInc;const totalBills=(p.bills||[]).reduce((s,b)=>s+Number(b.amount||0),0);const totalDebt=(p.debts||[]).reduce((s,d)=>s+Number(d.amount||0),0);const totalSavings=(p.savings||[]).reduce((s,sv)=>s+Number(sv.amount||0),0);const txExp=(p.transactions||[]).filter(t=>t.cat!=='Income'&&t.cat!=='Transfer').reduce((s,t)=>s+Number(t.amount||0),0);const manExp=[...(p.expenses||[]),...(p.extraExpenses||[])].reduce((s,e)=>s+Number(e.amount||0),0);const totalExp=txExp+manExp;const remaining=(p.rollover||0)+totalIncome-totalBills-totalDebt-totalSavings-totalExp;return{totalIncome,totalBills,totalDebt,totalSavings,totalExp,remaining,rollover:p.rollover||0};}
 function pSel(){const keys=Object.keys(S.periods).sort().reverse();if(!keys.includes(S.cur))keys.unshift(S.cur);return '<select onchange="chgP(this.value)" style="font-size:12px;padding:4px 8px;border-radius:6px;border:0.5px solid rgba(0,0,0,0.18);background:#fff">'+keys.map(k=>'<option value="'+k+'"'+(k===S.cur?' selected':'')+'>'+pLabel(k)+'</option>').join('')+'</select>';}
+
+// ─── Dynamic period detection ───────────────────────────────────────────────
+// Builds period boundaries from actual salary arrival dates across all transactions
+// Returns array of {startDate: 'DD/MM/YYYY', startObj: Date, key: 'YYYY-MM'}
+function detectSalaryPeriods(){
+  // Collect all salary transactions (Hub or Waf monthly salaries)
+  const salaries=[];
+  Object.values(S.periods).forEach(p=>{
+    (p.transactions||[]).forEach(t=>{
+      if(t.cat==='Income'&&(t.label==='Paycheck Hub'||t.label==='Paycheck Waf')){
+        const dp=t.date.split('/');
+        if(dp.length===3){
+          const dt=new Date(+dp[2],+dp[1]-1,+dp[0]);
+          salaries.push({date:t.date,obj:dt,label:t.label,month:+dp[2]*100+ +dp[1]});
+        }
+      }
+    });
+  });
+  // Group by calendar month and pick earliest in each
+  const byMonth={};
+  salaries.forEach(s=>{if(!byMonth[s.month]||s.obj<byMonth[s.month].obj)byMonth[s.month]=s;});
+  // Sort chronologically and add manual overrides
+  const overrides=ld('overrides',{});
+  Object.entries(overrides).forEach(([m,d])=>{const dp=d.split('/');if(dp.length===3){const dt=new Date(+dp[2],+dp[1]-1,+dp[0]);byMonth[+m]={date:d,obj:dt,label:'Override',month:+m};}});
+  return Object.values(byMonth).sort((a,b)=>a.obj-b.obj);
+}
+
+// Get the period key for a given date string based on detected salary periods
+function dynamicPeriodKey(dateStr,boundaries){
+  if(!dateStr||!boundaries||!boundaries.length)return curKey();
+  const dp=dateStr.split('/');
+  if(dp.length!==3)return curKey();
+  const txDate=new Date(+dp[2],+dp[1]-1,+dp[0]);
+  // Find the latest boundary that is <= this date
+  let chosen=null;
+  for(const b of boundaries){
+    if(b.obj<=txDate){chosen=b;}
+    else break;
+  }
+  if(!chosen){
+    // Before any salary - use first month/year
+    chosen=boundaries[0];
+    const py=chosen.obj.getFullYear(),pm=chosen.obj.getMonth()+1;
+    const prevM=pm===1?12:pm-1,prevY=pm===1?py-1:py;
+    return prevY+'-'+String(prevM).padStart(2,'0');
+  }
+  return chosen.obj.getFullYear()+'-'+String(chosen.obj.getMonth()+1).padStart(2,'0');
+}
+
+// Rebucket all transactions into correct periods based on salary dates
+function rebucketAll(){
+  const boundaries=detectSalaryPeriods();
+  if(!boundaries.length){alert('No salary transactions detected yet. Import CSVs first.');return;}
+  // Collect all transactions across all periods
+  const allTx=[];
+  Object.entries(S.periods).forEach(([k,p])=>{(p.transactions||[]).forEach(t=>allTx.push(t));});
+  // Clear all transactions
+  Object.keys(S.periods).forEach(k=>{S.periods[k].transactions=[];});
+  // Re-place using new logic
+  allTx.forEach(t=>{
+    const newKey=dynamicPeriodKey(t.date,boundaries);
+    const p=getP(newKey);
+    if(!p.transactions)p.transactions=[];
+    t._idx=p.transactions.length;
+    p.transactions.push(t);
+    // Update label with actual start/end dates
+    const idx=boundaries.findIndex(b=>(b.obj.getFullYear()+'-'+String(b.obj.getMonth()+1).padStart(2,'0'))===newKey);
+    if(idx>=0){
+      const start=boundaries[idx];
+      const next=boundaries[idx+1];
+      const startStr=start.date;
+      const endStr=next?addDaysStr(next.date,-1):'present';
+      const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      p.label=MO[start.obj.getMonth()]+' '+start.obj.getFullYear()+' ('+startStr+' – '+endStr+')';
+    }
+  });
+  sv('periods',S.periods);
+  alert('Rebucketed all transactions using salary arrival dates as period boundaries.');
+}
+
+function addDaysStr(dateStr,days){
+  const dp=dateStr.split('/');if(dp.length!==3)return dateStr;
+  const d=new Date(+dp[2],+dp[1]-1,+dp[0]);d.setDate(d.getDate()+days);
+  return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
+}
+
+// ─── Manual period overrides ────────────────────────────────────────────────
+function setOverride(monthKey,dateStr){
+  const ov=ld('overrides',{});
+  if(dateStr)ov[monthKey]=dateStr;else delete ov[monthKey];
+  sv('overrides',ov);
+  rebucketAll();
+  render();
+}
 
 let tab='dashboard';
 function go(t){tab=t;document.querySelectorAll('.tab').forEach((el,i)=>{el.classList.toggle('active',['dashboard','history','entry','import','bills','debts','planits','savings','settings'][i]===t);});render();}
@@ -211,6 +307,9 @@ function rSavings(){
 function rSettings(){
   return '<div class="card"><div class="card-title">Add transaction name mapping</div><div class="alert alert-info">Partial matches work — "Cooke Curtis" will match "COOKE CURTIS & CO LTD".</div><div class="form-row three"><div class="fg"><label>Statement text</label><input id="mR" placeholder="e.g. Novuna Personal"></div><div class="fg"><label>Friendly name</label><input id="mL" placeholder="e.g. Furniture Village"></div><div class="fg"><label>Category</label><select id="mC">'+CATS.map(c=>'<option>'+c+'</option>').join('')+'</select></div></div><div class="btn-row"><button class="btn primary" onclick="addMap()">Save mapping</button></div></div>'+
   '<div class="card"><div class="card-title">Saved mappings ('+Object.keys(S.maps).length+')</div><table class="tbl"><thead><tr><th>Statement text</th><th>Label</th><th>Category</th><th></th></tr></thead><tbody>'+Object.entries(S.maps).map(([k,v])=>'<tr><td style="font-family:monospace;font-size:12px">'+k+'</td><td>'+v.label+'</td><td>'+cb(v.cat)+'</td><td><button class="btn danger" onclick="delMap(\''+k.replace(/'/g,"\\'")+'\')" >x</button></td></tr>').join('')+'</tbody></table></div>'+
+  '<div class="card"><div class="card-title">Period overrides</div><div class="alert alert-info">By default, periods start on the day a monthly salary arrives. Use this if a salary was missed or to manually set a period start.</div>'+
+  (function(){const boundaries=detectSalaryPeriods();const ov=ld('overrides',{});if(!boundaries.length)return '<div class="empty">No salary periods detected yet. Import CSVs first.</div>';return '<table class="tbl"><thead><tr><th>Period</th><th>Auto start</th><th>Override</th><th></th></tr></thead><tbody>'+boundaries.map(b=>{const mk=b.month;return '<tr><td>'+(['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][b.obj.getMonth()])+' '+b.obj.getFullYear()+'</td><td>'+b.date+(b.label==='Override'?' (manual)':'')+'</td><td><input type="text" placeholder="DD/MM/YYYY" value="'+(ov[mk]||'')+'" id="ov_'+mk+'" style="font-size:13px;padding:4px 8px;border-radius:4px;border:0.5px solid rgba(0,0,0,0.18);width:120px"></td><td><button class="btn" onclick="saveOverride('+mk+')">Save</button> '+(ov[mk]?'<button class="btn danger" onclick="setOverride('+mk+',null)">Clear</button>':'')+'</td></tr>';}).join('')+'</tbody></table>';})()+
+  '</div>'+
   '<div class="card"><div class="card-title">Data management</div><div class="btn-row"><button class="btn primary" onclick="expD()">Export backup (JSON)</button><button class="btn" onclick="document.getElementById(\'impJ\').click()">Import backup (JSON)</button><button class="btn danger" onclick="if(confirm(\'Clear ALL data?\'))clrAll()">Clear all data</button></div><input id="impJ" type="file" accept=".json" style="display:none" onchange="impD(this)"><p style="font-size:12px;color:#888;margin-top:10px">Data lives in this browser. Export regularly as a backup.</p></div>';
 }
 
@@ -240,8 +339,31 @@ function handleCSV(input){
       counts[pk]=(counts[pk]||0)+1;
     });
     sv('periods',S.periods);
+    // After import, auto-rebucket based on salary arrival dates
+    const boundaries=detectSalaryPeriods();
+    if(boundaries.length){
+      // Collect all transactions and re-place
+      const allTx=[];
+      Object.entries(S.periods).forEach(([k,p])=>{(p.transactions||[]).forEach(t=>allTx.push(t));});
+      Object.keys(S.periods).forEach(k=>{S.periods[k].transactions=[];});
+      allTx.forEach(t=>{
+        const newKey=dynamicPeriodKey(t.date,boundaries);
+        const p=getP(newKey);
+        if(!p.transactions)p.transactions=[];
+        t._idx=p.transactions.length;
+        p.transactions.push(t);
+        const idx=boundaries.findIndex(b=>(b.obj.getFullYear()+'-'+String(b.obj.getMonth()+1).padStart(2,'0'))===newKey);
+        if(idx>=0){
+          const start=boundaries[idx];const next=boundaries[idx+1];
+          const startStr=start.date;const endStr=next?addDaysStr(next.date,-1):'present';
+          const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+          p.label=MO[start.obj.getMonth()]+' '+start.obj.getFullYear()+' ('+startStr+' – '+endStr+')';
+        }
+      });
+      sv('periods',S.periods);
+    }
     const sum=Object.entries(counts).sort().map(([k,n])=>pShort(k)+': '+n).join('\n');
-    if(sum)alert('Imported and sorted:\n\n'+sum);
+    if(sum)alert('Imported and rebucketed:\n\n'+sum);
     render();
   };
   reader.readAsText(file);input.value='';
@@ -320,6 +442,8 @@ function delMap(k){delete S.maps[k];sv('maps',S.maps);render();}
 
 function expD(){const blob=new Blob([JSON.stringify({maps:S.maps,bills:S.bills,debts:S.debts,periods:S.periods,subs:S.subs,savings:S.savings,planIts:S.planIts||[]},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='hub-waf-budget-backup.json';a.click();}
 function impD(input){const file=input.files[0];if(!file)return;const reader=new FileReader();reader.onload=e=>{try{const d=JSON.parse(e.target.result);if(d.maps)S.maps=d.maps;if(d.bills)S.bills=d.bills;if(d.debts)S.debts=d.debts;if(d.periods)S.periods=d.periods;if(d.subs)S.subs=d.subs;if(d.savings)S.savings=d.savings;if(d.planIts)S.planIts=d.planIts;sv('maps',S.maps);sv('bills',S.bills);sv('debts',S.debts);sv('periods',S.periods);sv('subs',S.subs);sv('savings',S.savings);sv('planIts',S.planIts);render();}catch(e){alert('Invalid JSON.');}};reader.readAsText(file);input.value='';}
+function saveOverride(monthKey){const v=document.getElementById('ov_'+monthKey).value.trim();if(!v){alert('Enter a date in DD/MM/YYYY format.');return;}if(!/^\d{2}\/\d{2}\/\d{4}$/.test(v)){alert('Format must be DD/MM/YYYY');return;}setOverride(monthKey,v);}
+
 function clrAll(){localStorage.clear();location.reload();}
 
 render();
