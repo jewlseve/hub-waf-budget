@@ -92,6 +92,7 @@ body{font-family:system-ui,-apple-system,sans-serif;font-size:15px;color:#1a1a1a
   <button class="tab" onclick="showTab('import')">Import CSV</button>
   <button class="tab" onclick="showTab('bills')">Bills</button>
   <button class="tab" onclick="showTab('debts')">Debts</button>
+  <button class="tab" onclick="showTab('planits')">Plan It / BNPL</button>
   <button class="tab" onclick="showTab('savings')">Savings & Subs</button>
   <button class="tab" onclick="showTab('settings')">Settings</button>
 </div>
@@ -108,48 +109,58 @@ const DEFAULT_BILLS=[{name:'Rent',amount:1425,day:21,cat:'Bills'},{name:'Council
 
 const DEFAULT_DEBTS=[{name:'Amex',balance:0,initialBalance:0,rate:22.9,minPayment:1500,notes:'Travel & groceries card'},{name:'Barclaycard Hub',balance:0,initialBalance:0,rate:0,minPayment:250,notes:'Personal spending'},{name:'Barclaycard Waf',balance:0,initialBalance:0,rate:0,minPayment:400,notes:'Personal spending'},{name:'BarcLoan Hub',balance:0,initialBalance:0,rate:0,minPayment:650.18,notes:'Barclays fraud loan'},{name:'BarcLoan Waf',balance:0,initialBalance:0,rate:0,minPayment:650,notes:'Barclays fraud loan'},{name:'CPAWCO Loan',balance:0,initialBalance:0,rate:0,minPayment:272,notes:'Philippine loan'}];
 
-const HISTORICAL_PERIODS={'2025-09':{label:'Oct 2025 (24 Oct – 24 Nov)',rollover:4532.91,income:[{label:'Paycheck Hub',who:'Hub',amount:2137.41},{label:'Paycheck Waf',who:'Waf',amount:2336.90},{label:'Dagas - Paris Payment',who:'Other',amount:498.00},{label:'Fraud Revolut Refund',who:'Hub',amount:4573.83},{label:'Fraud Wise Refund',who:'Waf',amount:9335.00},{label:'Vitality Cashback',who:'Other',amount:2.50},{label:'Airen (contribution)',who:'Other',amount:6.40},{label:'Christyl (contribution)',who:'Other',amount:12.00},{label:'Al Muhajil (contribution)',who:'Other',amount:40.00}],expenses:[{label:'Restaurant',cat:'Dining',amount:9.00},{label:'Travel',cat:'Travel',amount:340.88},{label:'Padala Balida',cat:'Remittance',amount:130.91},{label:'Work expenses - Waf',cat:'Work Expenses',amount:49.00}],bills:[{label:'Electricity',cat:'Bills',amount:250.73},{label:'Rent',cat:'Bills',amount:1425.00},{label:'EE (SIM+Broadband)',cat:'Bills',amount:182.54},{label:'Vitality Insurance',cat:'Bills',amount:53.65},{label:'Furniture Village',cat:'Bills',amount:78.30},{label:'Wildlife Trust',cat:'Bills',amount:4.00},{label:'Water',cat:'Bills',amount:181.00}],debts:[{label:'Amex',cat:'Debt',amount:2000.00},{label:'Barclaycard Hub',cat:'Debt',amount:691.50},{label:'Barclaycard Waf',cat:'Debt',amount:279.09},{label:'BarcLoan Hub',cat:'Debt',amount:650.18},{label:'BarcLoan Waf',cat:'Debt',amount:650.00},{label:'CPAWCO Loan',cat:'Debt',amount:543.97}],savings:[{label:'Trading 212',cat:'Savings',amount:5021.00},{label:'eToro',cat:'Savings',amount:800.00}]},'2025-11':{label:'Nov 2025 (25 Nov – 19 Dec)',rollover:9554.30,income:[{label:'Paycheck Hub',who:'Hub',amount:2030.00},{label:'Paycheck Waf',who:'Waf',amount:2336.90},{label:'Paycheck Hub Bank',who:'Hub',amount:176.00},{label:'Travel reimbursement (Airen)',who:'Other',amount:18.75},{label:'Travel reimbursement (CJ)',who:'Other',amount:40.27},{label:'SkipTax refund',who:'Other',amount:10.41},{label:'Paypal Work Refund (Waf)',who:'Waf',amount:520.00}],expenses:[{label:'Restaurant',cat:'Dining',amount:25.20},{label:'Work expenses - Waf',cat:'Work Expenses',amount:93.85},{label:'Travel (Airen)',cat:'Travel',amount:323.43},{label:'Travel (CJ)',cat:'Travel',amount:10.70}],bills:[{label:'Electricity',cat:'Bills',amount:250.73},{label:'Council Tax',cat:'Bills',amount:181.00},{label:'EE (SIM+Broadband)',cat:'Bills',amount:166.04},{label:'Vitality Insurance',cat:'Bills',amount:23.65},{label:'Transport',cat:'Bills',amount:6.00},{label:'Wildlife Trust',cat:'Bills',amount:4.00}],debts:[{label:'Amex',cat:'Debt',amount:4244.73},{label:'Barclaycard Hub',cat:'Debt',amount:1157.59},{label:'Barclaycard Waf',cat:'Debt',amount:826.20},{label:'Apple Watch (Hub)',cat:'Debt',amount:5.00}],savings:[]},'2025-12':{label:'Dec 2025 (19 Dec – 22 Jan)',rollover:8150.20,income:[{label:'Paycheck Hub',who:'Hub',amount:2000.00},{label:'Paycheck Waf',who:'Waf',amount:2400.00}],expenses:[{label:'Travel (PayPal)',cat:'Travel',amount:151.60}],bills:[{label:'Electricity',cat:'Bills',amount:250.73},{label:'Council Tax',cat:'Bills',amount:181.00},{label:'Rent (2 months)',cat:'Bills',amount:2850.00},{label:'EE (SIM+Broadband)',cat:'Bills',amount:246.59},{label:'Vitality Insurance',cat:'Bills',amount:53.65},{label:'Apple Watch (Hub)',cat:'Bills',amount:5.00}],debts:[{label:'Amex',cat:'Debt',amount:2414.28},{label:'Barclaycard Hub',cat:'Debt',amount:259.14},{label:'Barclaycard Waf',cat:'Debt',amount:221.97},{label:'BarcLoan Hub',cat:'Debt',amount:650.18},{label:'BarcLoan Waf',cat:'Debt',amount:650.00},{label:'CPAWCO Loan',cat:'Debt',amount:272.00},{label:'Furniture Village',cat:'Debt',amount:75.00},{label:'Apple Watch (Hub)',cat:'Debt',amount:5.00}],savings:[]},'2026-01':{label:'Jan 2026 (23 Jan – 24 Feb)',rollover:5306.65,income:[{label:'Paycheck Hub',who:'Hub',amount:1373.28},{label:'Paycheck Waf',who:'Waf',amount:2336.90},{label:'Paycheck Hub Bank (x5)',who:'Hub',amount:1164.68},{label:'Paycheck Waf Bank (x2)',who:'Waf',amount:280.13},{label:'Airen (contribution)',who:'Other',amount:30.10},{label:'CJ (contribution)',who:'Other',amount:20.00}],expenses:[{label:'Groceries',cat:'Groceries',amount:20.00},{label:'Entertainment',cat:'Entertainment',amount:30.00},{label:'Travel (PayPal)',cat:'Travel',amount:75.80}],bills:[{label:'Electricity',cat:'Bills',amount:250.73},{label:'Council Tax',cat:'Bills',amount:181.00},{label:'Rent',cat:'Bills',amount:1425.00},{label:'EE (SIM)',cat:'Bills',amount:63.62},{label:'EE Broadband',cat:'Bills',amount:44.99},{label:'Vitality Insurance',cat:'Bills',amount:55.14},{label:'Apple Watch (Hub)',cat:'Bills',amount:7.50}],debts:[{label:'Amex',cat:'Debt',amount:1377.46},{label:'Barclaycard Hub',cat:'Debt',amount:919.89},{label:'Barclaycard Waf',cat:'Debt',amount:307.39},{label:'BarcLoan Hub',cat:'Debt',amount:650.18},{label:'BarcLoan Waf',cat:'Debt',amount:650.00},{label:'CPAWCO Loan',cat:'Debt',amount:272.00},{label:'Furniture Village',cat:'Debt',amount:75.00},{label:'Apple Watch (Hub)',cat:'Debt',amount:7.50}],savings:[]},'2026-02':{label:'Feb 2026 (25 Feb – 24 Mar)',rollover:4265.51,income:[{label:'Paycheck Hub',who:'Hub',amount:2042.66},{label:'Paycheck Waf',who:'Waf',amount:2327.16},{label:'Paycheck Hub Bank (x4)',who:'Hub',amount:1388.59},{label:'Paycheck Waf Bank',who:'Waf',amount:5.00}],expenses:[{label:'Restaurant',cat:'Dining',amount:10.90},{label:'Travel (Christyl)',cat:'Travel',amount:33.24},{label:'Home (Repairs)',cat:'Home',amount:270.00},{label:'Travel (PayPal)',cat:'Travel',amount:75.80}],bills:[{label:'Council Tax',cat:'Bills',amount:181.00},{label:'Rent',cat:'Bills',amount:1425.00},{label:'EE (SIM)',cat:'Bills',amount:67.78},{label:'EE Broadband',cat:'Bills',amount:44.99},{label:'Vitality Insurance',cat:'Bills',amount:55.14},{label:'Apple Watch (Hub)',cat:'Bills',amount:7.50}],debts:[{label:'Amex',cat:'Debt',amount:1659.69},{label:'Barclaycard Hub',cat:'Debt',amount:485.95},{label:'Barclaycard Waf',cat:'Debt',amount:541.00},{label:'BarcLoan Hub',cat:'Debt',amount:650.18},{label:'BarcLoan Waf',cat:'Debt',amount:650.00},{label:'CPAWCO Loan',cat:'Debt',amount:272.00},{label:'Furniture Village',cat:'Debt',amount:75.00},{label:'Apple Watch (Hub)',cat:'Debt',amount:7.50}],savings:[{label:'Trading 212',cat:'Savings',amount:1007.00}]},'2026-03':{label:'Mar 2026 (25 Mar – 24 Apr)',rollover:2626.75,income:[{label:'Paycheck Hub',who:'Hub',amount:2678.10},{label:'Paycheck Waf',who:'Waf',amount:2361.76},{label:'Paycheck Hub Bank (x2)',who:'Hub',amount:602.52},{label:'Paycheck Waf Bank (x2)',who:'Waf',amount:246.55}],expenses:[],bills:[{label:'Electricity',cat:'Bills',amount:250.73}],debts:[{label:'Amex',cat:'Debt',amount:1500.00},{label:'Barclaycard Hub',cat:'Debt',amount:250.00},{label:'Barclaycard Waf',cat:'Debt',amount:400.00},{label:'BarcLoan Hub',cat:'Debt',amount:650.18},{label:'BarcLoan Waf',cat:'Debt',amount:650.00},{label:'CPAWCO Loan',cat:'Debt',amount:272.00},{label:'Furniture Village',cat:'Debt',amount:75.00},{label:'Apple Watch (Hub)',cat:'Debt',amount:10.00}],savings:[]}};
+// Barclays account number → who owns it
+const ACCOUNT_MAP={'20-17-22 43623793':'Hub','20-26-86 90632368':'Joint','20-17-22 43370569':'Waf'};
+
+// Income credit labels from Barclays → friendly name + category
+const INCOME_MAPPINGS={'CAM UNI HOSP':{label:'Paycheck Waf Bank',cat:'Income',who:'Waf'},'ADDENBROOKES':{label:'Paycheck Waf Bank',cat:'Income',who:'Waf'},'NWLH NHS':{label:'Paycheck Hub Bank',cat:'Income',who:'Hub'},'NHS':{label:'Paycheck Bank',cat:'Income',who:'Hub'},'SALARY':{label:'Paycheck',cat:'Income',who:'Hub'},'WAGES':{label:'Paycheck',cat:'Income',who:'Hub'},'BACS CREDIT':{label:'Paycheck',cat:'Income',who:'Hub'}};
 
 function load(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
 function save(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
 
-function mergeHistorical(){
-  const ex=load('periods',{});const merged={};
-  Object.keys(HISTORICAL_PERIODS).forEach(k=>{
-    if(!ex[k]||!ex[k]._fromHistory){
-      const h=HISTORICAL_PERIODS[k];
-      merged[k]={_fromHistory:true,label:h.label,rollover:h.rollover,income:h.income.map((i,idx)=>({...i,_idx:idx})),expenses:h.expenses.map((e,idx)=>({...e,_idx:idx})),bills:h.bills.map((b,idx)=>({...b,_idx:idx})),debts:h.debts.map((d,idx)=>({...d,_idx:idx})),savings:h.savings.map((s,idx)=>({...s,_idx:idx})),transactions:[],extraIncome:[],extraExpenses:[]};
-    } else {merged[k]=ex[k];}
-  });
-  Object.keys(ex).forEach(k=>{if(!merged[k])merged[k]=ex[k];});
-  return merged;
+function getCurrentPeriodKey(){
+  const now=new Date();const d=now.getDate();const m=now.getMonth()+1;const y=now.getFullYear();
+  if(d>=25)return y+'-'+String(m).padStart(2,'0');
+  const pm=m===1?12:m-1;const py=m===1?y-1:y;
+  return py+'-'+String(pm).padStart(2,'0');
 }
 
-let state={mappings:load('mappings',DEFAULT_MAPPINGS),bills:load('bills',DEFAULT_BILLS),debts:load('debts',DEFAULT_DEBTS),periods:mergeHistorical(),subs:load('subs',[]),savings:load('savings',[]),currentPeriod:load('currentPeriod','2026-03')};
-save('periods',state.periods);
+let state={
+  mappings:load('mappings',DEFAULT_MAPPINGS),
+  bills:load('bills',DEFAULT_BILLS),
+  debts:load('debts',DEFAULT_DEBTS),
+  periods:load('periods',{}),
+  subs:load('subs',[]),
+  savings:load('savings',[]),
+  planIts:load('planIts',[]),
+  currentPeriod:load('currentPeriod',getCurrentPeriodKey())
+};
 
 function getPeriodLabel(k){return(state.periods[k]&&state.periods[k].label)||k;}
-function getOrCreatePeriod(k){if(!state.periods[k]){state.periods[k]={income:[],expenses:[],bills:[],debts:[],savings:[],transactions:[],extraIncome:[],extraExpenses:[],rollover:0};save('periods',state.periods);}return state.periods[k];}
-function fmt(n){return'£'+Math.abs(Number(n)||0).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});}
-function catBadge(c){const cls={Bills:'badge-bills',Debt:'badge-debt',Income:'badge-income',Savings:'badge-savings',Transfer:'badge-transfer'}[c]||'badge-unknown';return`<span class="badge ${cls}">${c||'Other'}</span>`;}
-
-function calcPeriodTotals(k){
-  const p=getOrCreatePeriod(k);
-  const totalIncome=[...(p.income||[]),...(p.extraIncome||[])].reduce((s,i)=>s+Number(i.amount||0),0);
-  const totalBills=(p.bills||[]).reduce((s,b)=>s+Number(b.amount||0),0);
-  const totalDebt=(p.debts||[]).reduce((s,d)=>s+Number(d.amount||0),0);
-  const totalSavings=(p.savings||[]).reduce((s,sv)=>s+Number(sv.amount||0),0);
-  const totalTx=(p.transactions||[]).filter(t=>t.cat!=='Income'&&t.cat!=='Transfer').reduce((s,t)=>s+Number(t.amount||0),0);
-  const totalExp=[...(p.expenses||[]),...(p.extraExpenses||[])].reduce((s,e)=>s+Number(e.amount||0),0)+totalTx;
-  const remaining=(p.rollover||0)+totalIncome-totalBills-totalDebt-totalSavings-totalExp;
-  return{totalIncome,totalBills,totalDebt,totalSavings,totalExp,remaining,rollover:p.rollover||0};
+function getOrCreatePeriod(k){
+  if(!state.periods[k]){
+    // Auto-generate label for new period
+    const parts=k.split('-');
+    if(parts.length===2){
+      const y=parseInt(parts[0]);const m=parseInt(parts[1]);
+      const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const em=m===12?1:m+1;const ey=m===12?y+1:y;
+      state.periods[k]={label:months[m-1]+' '+y+' (25 '+months[m-1]+' – 24 '+months[em-1]+' '+ey+')',income:[],expenses:[],bills:[],debts:[],savings:[],transactions:[],extraIncome:[],extraExpenses:[],rollover:0};
+    } else {
+      state.periods[k]={income:[],expenses:[],bills:[],debts:[],savings:[],transactions:[],extraIncome:[],extraExpenses:[],rollover:0};
+    }
+    save('periods',state.periods);
+  }
+  return state.periods[k];
 }
+
+
 
 let activeTab='dashboard';
 function showTab(t){
   activeTab=t;
   document.querySelectorAll('.tab').forEach((el,i)=>{
-    el.classList.toggle('active',['dashboard','history','entry','import','bills','debts','savings','settings'][i]===t);
+    el.classList.toggle('active',['dashboard','history','entry','import','bills','debts','planits','savings','settings'][i]===t);
   });
   render();
 }
@@ -168,6 +179,7 @@ function render(){
   else if(activeTab==='import')el.innerHTML=renderImport();
   else if(activeTab==='bills')el.innerHTML=renderBills();
   else if(activeTab==='debts')el.innerHTML=renderDebts();
+  else if(activeTab==='planits')el.innerHTML=renderPlanIts();
   else if(activeTab==='savings')el.innerHTML=renderSavings();
   else if(activeTab==='settings')el.innerHTML=renderSettings();
 }
@@ -200,6 +212,7 @@ function renderDashboard(){
   </div>
   <div class="card">
     <div class="card-title">Debt snowball</div>
+    ${(state.planIts||[]).length?`<div style="margin-bottom:12px"><div style="font-size:12px;color:#666;margin-bottom:8px;font-weight:500">PLAN IT / BNPL</div>${(state.planIts||[]).map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:0.5px solid rgba(0,0,0,0.07);font-size:13px"><span>${p.name} <span style="color:#666;font-size:11px">${p.item?'· '+p.item:''}</span></span><span style="color:#534AB7;font-weight:500">${fmt(p.monthlyPayment)}/mo · ${p.monthsRemaining} left</span></div>`).join('')}</div>`:''}
     ${state.debts.filter(d=>Number(d.balance||0)>0).length?state.debts.filter(d=>Number(d.balance||0)>0).sort((a,b)=>a.balance-b.balance).map((d,i)=>`
       <div class="debt-card">
         <div class="snowball-order">${i+1}</div>
@@ -271,20 +284,42 @@ function renderEntry(){
   </div>`;
 }
 
+function clearPeriodTx(k){if(confirm('Clear all imported transactions for '+getPeriodLabel(k)+'?')){state.periods[k].transactions=[];save('periods',state.periods);render();}}
+
 function renderImport(){
-  const p=getOrCreatePeriod(state.currentPeriod);
-  const unknown=(p.transactions||[]).filter(t=>!t.cat||t.cat==='Unknown');
-  const known=(p.transactions||[]).filter(t=>t.cat&&t.cat!=='Unknown');
+  // Collect all unknowns and all known transactions across ALL periods
+  const allUnknown=[];
+  const periodKeys=Object.keys(state.periods).sort();
+  periodKeys.forEach(k=>{
+    (state.periods[k].transactions||[]).filter(t=>!t.cat||t.cat==='Unknown').forEach(t=>allUnknown.push({...t,_periodKey:k}));
+  });
+  const totalKnown=periodKeys.reduce((s,k)=>s+(state.periods[k].transactions||[]).filter(t=>t.cat&&t.cat!=='Unknown').length,0);
+
   return`
   <div class="card">
     <div class="card-title">Import bank statement CSV</div>
-    <div class="alert alert-info">Barclays and Amex CSV formats supported. Download from your banking app and upload here.</div>
+    <div class="alert alert-info">Transactions are automatically sorted into the correct pay period (25th–24th) based on their date. You can import a full multi-month file in one go.</div>
     <div class="upload-zone" onclick="document.getElementById('csv-file').click()">Drop CSV file here or click to browse<br><span style="font-size:11px;margin-top:4px;display:block">Barclays &amp; Amex formats auto-detected</span></div>
     <input id="csv-file" type="file" accept=".csv" style="display:none" onchange="handleCSV(this)">
     <div class="form-row"><div class="form-group"><label>Bank format</label><select id="csv-bank"><option value="barclays">Barclays</option><option value="amex">American Express</option></select></div></div>
   </div>
-  ${unknown.length?`<div class="card"><div class="card-title">Unrecognised — please categorise (${unknown.length})</div><div class="alert alert-warn">Categorise these and click "Save &amp; remember" to teach the app permanently.</div>${unknown.map(t=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap"><span style="flex:1;min-width:140px;font-size:13px">${t.rawLabel}</span><span style="font-weight:500;min-width:70px;text-align:right">${fmt(t.amount)}</span><input placeholder="Friendly name" value="${t.label||t.rawLabel}" onchange="setTxLabel(${t._idx},'label',this.value)" style="width:150px;font-size:13px;padding:6px 8px;border-radius:6px;border:0.5px solid rgba(0,0,0,0.2)"><select onchange="setTxLabel(${t._idx},'cat',this.value)" style="font-size:13px;padding:6px 8px;border-radius:6px;border:0.5px solid rgba(0,0,0,0.2)"><option value="">— category —</option>${CATS.map(c=>`<option value="${c}" ${c===t.cat?'selected':''}>${c}</option>`).join('')}</select><button class="btn" onclick="learnMapping(${t._idx})">Save &amp; remember</button></div>`).join('')}</div>`:''}
-  ${known.length?`<div class="card"><div class="card-title">Imported transactions (${known.length})</div><table class="table"><thead><tr><th>Date</th><th>Description</th><th>Category</th><th style="text-align:right">Amount</th><th></th></tr></thead><tbody>${known.map(t=>`<tr><td style="color:#666">${t.date||'-'}</td><td>${t.label||t.rawLabel}</td><td>${catBadge(t.cat)}</td><td style="text-align:right">${fmt(t.amount)}</td><td><button class="btn danger" onclick="delTx(${t._idx})">×</button></td></tr>`).join('')}</tbody></table></div>`:''}`;
+  ${allUnknown.length?`<div class="card"><div class="card-title">Unrecognised — please categorise (${allUnknown.length} across all periods)</div><div class="alert alert-warn">Categorise these and click "Save &amp; remember" to teach the app permanently.</div>${allUnknown.map(t=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap"><span style="font-size:11px;color:#666;background:#f0efea;padding:2px 6px;border-radius:4px">${getPeriodLabel(t._periodKey).split('(')[0].trim()}</span><span style="flex:1;min-width:120px;font-size:13px">${t.rawLabel}</span><span style="font-weight:500;min-width:70px;text-align:right">${fmt(t.amount)}</span><input placeholder="Friendly name" value="${t.label||t.rawLabel}" onchange="setTxLabel(${t._idx},'label',this.value)" style="width:140px;font-size:13px;padding:6px 8px;border-radius:6px;border:0.5px solid rgba(0,0,0,0.2)"><select onchange="setTxLabel(${t._idx},'cat',this.value)" style="font-size:13px;padding:6px 8px;border-radius:6px;border:0.5px solid rgba(0,0,0,0.2)"><option value="">— category —</option>${CATS.map(c=>`<option value="${c}" ${c===t.cat?'selected':''}>${c}</option>`).join('')}</select><button class="btn" onclick="learnMapping(${t._idx})">Save &amp; remember</button></div>`).join('')}</div>`:''}
+  <div class="card">
+    <div class="card-title">Imported transactions by period</div>
+    ${periodKeys.map(k=>{
+      const txs=(state.periods[k].transactions||[]).filter(t=>t.cat&&t.cat!=='Unknown');
+      if(!txs.length)return'';
+      return`<div style="margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="font-weight:500;font-size:13px">${getPeriodLabel(k).split('(')[0].trim()} <span style="color:#666;font-weight:400">(${txs.length} transactions)</span></div>
+          <button class="btn danger" onclick="clearPeriodTx('${k}')" style="font-size:11px;padding:3px 8px">Clear all</button>
+        </div>
+        <table class="table"><thead><tr><th>Date</th><th>Description</th><th>Category</th><th style="text-align:right">Amount</th><th></th></tr></thead>
+        <tbody>${txs.map(t=>`<tr><td style="color:#666">${t.date||'-'}</td><td>${t.label||t.rawLabel}</td><td>${catBadge(t.cat)}</td><td style="text-align:right">${fmt(t.amount)}</td><td><button class="btn danger" onclick="delTx(${t._idx})">×</button></td></tr>`).join('')}</tbody></table>
+      </div>`;
+    }).join('')}
+    ${!totalKnown?'<div class="empty">No imported transactions yet. Upload a CSV above.</div>':''}
+  </div>`;
 }
 
 function renderBills(){
@@ -321,6 +356,82 @@ function renderDebts(){
     ${sorted.length?sorted.map((d,i)=>`<div class="debt-card"><div class="snowball-order">${i+1}</div><div class="debt-info"><div class="debt-name">${d.name}</div><div class="debt-meta">${d.notes||''} ${d.rate>0?'· '+d.rate+'% APR':''}</div><div class="progress-bar"><div class="progress-fill" style="width:${d.initialBalance>0?Math.min(100,Math.round((d.initialBalance-d.balance)/d.initialBalance*100)):0}%"></div></div><div style="font-size:11px;color:#666;margin-top:2px">${d.initialBalance>0?Math.min(100,Math.round((d.initialBalance-d.balance)/d.initialBalance*100))+'% paid off':'Enter initial balance to track %'}</div></div><div class="debt-balance"><div class="debt-balance-num">${fmt(d.balance)}</div><div class="debt-payment">min ${fmt(d.minPayment||0)}/mo</div><button class="btn danger" onclick="delDebt('${d.name}')" style="margin-top:4px;font-size:11px;padding:3px 8px">Remove</button></div></div>`).join(''):'<div class="empty">Enter debt balances above.</div>'}
     ${state.debts.filter(d=>Number(d.balance||0)===0).length?`<div style="font-size:12px;color:#666;margin-top:12px">Zeroed / unset: ${state.debts.filter(d=>Number(d.balance||0)===0).map(d=>d.name).join(', ')}</div>`:''}
   </div>`;
+}
+
+
+function renderPlanIts(){
+  const planIts=state.planIts||[];
+  const totalMonthly=planIts.reduce((s,p)=>s+Number(p.monthlyPayment||0),0);
+  const totalRemaining=planIts.reduce((s,p)=>s+((p.monthsRemaining||0)*Number(p.monthlyPayment||0)),0);
+  return`
+  <div class="card">
+    <div class="card-title">Add Amex Plan It</div>
+    <div class="form-row">
+      <div class="form-group"><label>Plan name</label><input id="pi-name" placeholder="e.g. iPhone 16, Sofa…"></div>
+      <div class="form-group"><label>What was purchased</label><input id="pi-item" placeholder="e.g. iPhone 16 Pro 256GB"></div>
+    </div>
+    <div class="form-row three">
+      <div class="form-group"><label>Total amount (£)</label><input id="pi-total" type="number" placeholder="0.00" step="0.01"></div>
+      <div class="form-group"><label>Monthly payment (£)</label><input id="pi-monthly" type="number" placeholder="0.00" step="0.01"></div>
+      <div class="form-group"><label>Months remaining</label><input id="pi-months" type="number" placeholder="0" min="0"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>End date</label><input id="pi-end" type="month"></div>
+      <div class="form-group"><label>Notes (optional)</label><input id="pi-notes" placeholder="e.g. 0% fee plan"></div>
+    </div>
+    <div class="btn-row"><button class="btn primary" onclick="addPlanIt()">Add Plan It</button></div>
+  </div>
+  ${planIts.length?`
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px">
+      <div class="card-title" style="margin:0">Active Plan Its</div>
+      <div style="font-size:13px;color:#666">${fmt(totalMonthly)}/mo · ${fmt(totalRemaining)} total remaining</div>
+    </div>
+    ${planIts.map((p,i)=>{
+      const paid=Number(p.total||0)-(Number(p.monthsRemaining||0)*Number(p.monthlyPayment||0));
+      const pct=p.total>0?Math.min(100,Math.round(paid/p.total*100)):0;
+      return`<div class="debt-card">
+        <div class="debt-info">
+          <div style="display:flex;align-items:baseline;gap:8px">
+            <div class="debt-name">${p.name}</div>
+            <div style="font-size:12px;color:#666">${p.item||''}</div>
+          </div>
+          <div class="debt-meta">
+            ${p.monthsRemaining} months left
+            ${p.endDate?' · ends '+p.endDate:''}
+            ${p.notes?' · '+p.notes:''}
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:#534AB7"></div></div>
+          <div style="font-size:11px;color:#666;margin-top:2px">${pct}% paid · ${fmt(paid)} of ${fmt(p.total||0)}</div>
+        </div>
+        <div class="debt-balance">
+          <div class="debt-balance-num">${fmt((p.monthsRemaining||0)*Number(p.monthlyPayment||0))}</div>
+          <div class="debt-payment">left to pay</div>
+          <div style="font-size:12px;color:#666;margin-top:2px">${fmt(p.monthlyPayment||0)}/mo</div>
+          <button class="btn danger" onclick="delPlanIt(${i})" style="margin-top:6px;font-size:11px;padding:3px 8px">Remove</button>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`:'<div class="card"><div class="empty">No Plan Its added yet. Add your first one above.</div></div>'}`;
+}
+
+function addPlanIt(){
+  const name=document.getElementById('pi-name').value.trim();
+  const item=document.getElementById('pi-item').value.trim();
+  const total=parseFloat(document.getElementById('pi-total').value)||0;
+  const monthlyPayment=parseFloat(document.getElementById('pi-monthly').value)||0;
+  const monthsRemaining=parseInt(document.getElementById('pi-months').value)||0;
+  const endDate=document.getElementById('pi-end').value;
+  const notes=document.getElementById('pi-notes').value.trim();
+  if(!name||!monthlyPayment)return alert('Enter a name and monthly payment.');
+  if(!state.planIts)state.planIts=[];
+  state.planIts.push({name,item,total,monthlyPayment,monthsRemaining,endDate,notes});
+  save('planIts',state.planIts);render();
+}
+
+function delPlanIt(i){
+  state.planIts.splice(i,1);
+  save('planIts',state.planIts);render();
 }
 
 function renderSavings(){
@@ -374,23 +485,51 @@ function addExpense(){const label=document.getElementById('exp-label').value.tri
 function delExtraExpense(i){const p=getOrCreatePeriod(state.currentPeriod);p.extraExpenses.splice(i,1);save('periods',state.periods);render();}
 const AMEX_CAT_MAP={'Entertainment-Restaurants':'Dining','Entertainment-Bars & Cafés':'Dining','Entertainment-Sports Events':'Entertainment','General Purchases-Groceries':'Groceries','General Purchases-Pharmacies':'Health','General Purchases-Clothing Stores':'Clothing','General Purchases-Computer Supplies':'Shopping','General Purchases-Wholesale Stores':'Groceries','General Purchases-Online Purchases':'Shopping'};
 
+// Convert a DD/MM/YYYY date string to a period key YYYY-MM (paycheck 25th-24th)
+function dateToPeriodKey(dateStr){
+  if(!dateStr)return state.currentPeriod;
+  const parts=dateStr.split('/');
+  if(parts.length!==3)return state.currentPeriod;
+  const day=parseInt(parts[0]);
+  const month=parseInt(parts[1]);
+  const year=parseInt(parts[2]);
+  if(isNaN(day)||isNaN(month)||isNaN(year))return state.currentPeriod;
+  // If day >= 25, period starts this month
+  // If day <= 24, period started previous month
+  if(day>=25){
+    return year+'-'+String(month).padStart(2,'0');
+  } else {
+    // Period started previous month
+    const pm=month===1?12:month-1;
+    const py=month===1?year-1:year;
+    return py+'-'+String(pm).padStart(2,'0');
+  }
+}
+
 function handleCSV(input){
   const file=input.files[0];if(!file)return;
   const bank=document.getElementById('csv-bank').value;
   const reader=new FileReader();
   reader.onload=e=>{
     const txs=parseCSV(e.target.result,bank);
-    const p=getOrCreatePeriod(state.currentPeriod);
-    if(!p.transactions)p.transactions=[];
-    let idx=p.transactions.length;
+    // Auto-split transactions into correct periods by date
+    const periodCounts={};
     txs.forEach(t=>{
+      const periodKey=dateToPeriodKey(t.date);
+      const p=getOrCreatePeriod(periodKey);
+      if(!p.transactions)p.transactions=[];
       const m=applyMapping(t.rawLabel);
       if(m){t.label=m.label;t.cat=m.cat;}
       else{t.label=t.rawLabel;t.cat=t.amexCat||'Unknown';}
-      t._idx=idx++;
+      t._idx=p.transactions.length;
       p.transactions.push(t);
+      periodCounts[periodKey]=(periodCounts[periodKey]||0)+1;
     });
-    save('periods',state.periods);render();
+    save('periods',state.periods);
+    // Show summary of what was imported where
+    const summary=Object.entries(periodCounts).sort().map(([k,n])=>getPeriodLabel(k)+': '+n+' transactions').join('\n');
+    if(summary)alert('Imported and split across periods:\n\n'+summary);
+    render();
   };
   reader.readAsText(file);input.value='';
 }
@@ -404,16 +543,27 @@ function parseCSV(text,bank){
       const cols=parseLine(lines[i]);
       if(cols.length<4)continue;
       const date=cols[1]?.trim();
+      const account=(cols[2]||'').trim();
       const amtRaw=parseFloat((cols[3]||'').replace(/[^0-9.-]/g,''));
       const subcategory=(cols[4]||'').trim();
       const rawLabel=(cols[5]||'').split('\t')[0].trim();
       if(!rawLabel||isNaN(amtRaw)||amtRaw===0)continue;
-      // Skip incoming Funds Transfers (salary transfers between own accounts)
-      if(subcategory==='Funds Transfer'&&amtRaw>0)continue;
-      // Skip Counter Credits (bank shift income - entered manually)
-      if(subcategory==='Counter Credit')continue;
+      const who=ACCOUNT_MAP[account]||'Unknown';
+      const isCredit=amtRaw>0;
       const amount=Math.abs(amtRaw);
-      txs.push({date,rawLabel,amount,label:rawLabel,cat:'Unknown',subcategory,_idx:0});
+      if(isCredit){
+        // Import income credits — check income mappings first
+        let incLabel=rawLabel;let incCat='Income';let incWho=who;
+        for(const[k,v]of Object.entries(INCOME_MAPPINGS)){
+          if(rawLabel.toUpperCase().includes(k)){incLabel=v.label+' ('+who+')';incWho=v.who||who;break;}
+        }
+        // Skip internal Funds Transfers between own Barclays accounts
+        if(subcategory==='Funds Transfer')continue;
+        txs.push({date,rawLabel,amount,label:incLabel,cat:'Income',who:incWho,account,subcategory,isCredit:true,_idx:0});
+      } else {
+        // Debit — expense
+        txs.push({date,rawLabel,amount,label:rawLabel,cat:'Unknown',who,account,subcategory,isCredit:false,_idx:0});
+      }
     }
   } else {
     // Amex format: Date, Description, Card Member, Account #, Amount, Extended Details, Appears On Your Statement As, ..., Category
@@ -439,9 +589,19 @@ function parseCSV(text,bank){
 }
 function parseLine(l){const r=[];let c='',q=false;for(let i=0;i<l.length;i++){if(l[i]==='"')q=!q;else if(l[i]===','&&!q){r.push(c);c='';}else c+=l[i];}r.push(c);return r;}
 function applyMapping(raw){const lo=raw.toLowerCase();for(const[k,v]of Object.entries(state.mappings))if(lo.includes(k.toLowerCase()))return v;return null;}
-function setTxLabel(idx,field,val){const p=getOrCreatePeriod(state.currentPeriod);const t=p.transactions.find(t=>t._idx===idx);if(t)t[field]=val;save('periods',state.periods);}
-function learnMapping(idx){const p=getOrCreatePeriod(state.currentPeriod);const t=p.transactions.find(t=>t._idx===idx);if(!t||!t.cat||t.cat==='Unknown')return alert('Pick a category first.');state.mappings[t.rawLabel.substring(0,20)]={label:t.label,cat:t.cat};save('mappings',state.mappings);render();}
-function delTx(idx){const p=getOrCreatePeriod(state.currentPeriod);p.transactions=p.transactions.filter(t=>t._idx!==idx);save('periods',state.periods);render();}
+function findTxAcrossPeriods(idx,periodKey){
+  // Search in given period first, then all periods
+  const keys=periodKey?[periodKey,...Object.keys(state.periods).filter(k=>k!==periodKey)]:Object.keys(state.periods);
+  for(const k of keys){const p=state.periods[k];if(p&&p.transactions){const t=p.transactions.find(t=>t._idx===idx);if(t)return{t,k};}}
+  return null;
+}
+function setTxLabel(idx,field,val){
+  const found=findTxAcrossPeriods(idx,state.currentPeriod);
+  if(found)found.t[field]=val;
+  save('periods',state.periods);
+}
+function learnMapping(idx){const found=findTxAcrossPeriods(idx,state.currentPeriod);if(!found||!found.t.cat||found.t.cat==='Unknown')return alert('Pick a category first.');const t=found.t;state.mappings[t.rawLabel.substring(0,20)]={label:t.label,cat:t.cat};save('mappings',state.mappings);render();}
+function delTx(idx){const found=findTxAcrossPeriods(idx,state.currentPeriod);if(found){state.periods[found.k].transactions=state.periods[found.k].transactions.filter(t=>t._idx!==idx);}save('periods',state.periods);render();}
 function addBill(){const name=document.getElementById('bill-name').value.trim();const amount=parseFloat(document.getElementById('bill-amount').value);const day=parseInt(document.getElementById('bill-day').value)||0;if(!name||isNaN(amount))return alert('Enter name and amount.');state.bills.push({name,amount,day,cat:'Bills'});save('bills',state.bills);render();}
 function delBill(i){state.bills.splice(i,1);save('bills',state.bills);render();}
 function addDebt(){const name=document.getElementById('debt-name').value.trim();const balance=parseFloat(document.getElementById('debt-balance').value)||0;const rate=parseFloat(document.getElementById('debt-rate').value)||0;const minPayment=parseFloat(document.getElementById('debt-min').value)||0;const notes=document.getElementById('debt-notes').value.trim();if(!name)return alert('Enter a debt name.');const i=state.debts.findIndex(d=>d.name===name);if(i>=0){if(!state.debts[i].initialBalance&&balance>0)state.debts[i].initialBalance=balance;Object.assign(state.debts[i],{balance,rate,minPayment,notes});}else state.debts.push({name,balance,rate,minPayment,notes,initialBalance:balance});save('debts',state.debts);render();}
@@ -452,8 +612,8 @@ function addSub(){const name=document.getElementById('sub-name').value.trim();co
 function delSub(i){state.subs.splice(i,1);save('subs',state.subs);render();}
 function addMapping(){const raw=document.getElementById('map-raw').value.trim();const label=document.getElementById('map-label').value.trim();const cat=document.getElementById('map-cat').value;if(!raw||!label)return alert('Fill in both fields.');state.mappings[raw]={label,cat};save('mappings',state.mappings);render();}
 function delMapping(key){delete state.mappings[key];save('mappings',state.mappings);render();}
-function exportData(){const blob=new Blob([JSON.stringify({mappings:state.mappings,bills:state.bills,debts:state.debts,periods:state.periods,subs:state.subs,savings:state.savings},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='hub-waf-budget-backup.json';a.click();}
-function importData(input){const file=input.files[0];if(!file)return;const reader=new FileReader();reader.onload=e=>{try{const d=JSON.parse(e.target.result);if(d.mappings)state.mappings=d.mappings;if(d.bills)state.bills=d.bills;if(d.debts)state.debts=d.debts;if(d.periods)state.periods=d.periods;if(d.subs)state.subs=d.subs;if(d.savings)state.savings=d.savings;save('mappings',state.mappings);save('bills',state.bills);save('debts',state.debts);save('periods',state.periods);save('subs',state.subs);save('savings',state.savings);render();}catch(e){alert('Invalid JSON file.');}};reader.readAsText(file);input.value='';}
+function exportData(){const blob=new Blob([JSON.stringify({mappings:state.mappings,bills:state.bills,debts:state.debts,periods:state.periods,subs:state.subs,savings:state.savings,planIts:state.planIts||[]},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='hub-waf-budget-backup.json';a.click();}
+function importData(input){const file=input.files[0];if(!file)return;const reader=new FileReader();reader.onload=e=>{try{const d=JSON.parse(e.target.result);if(d.mappings)state.mappings=d.mappings;if(d.bills)state.bills=d.bills;if(d.debts)state.debts=d.debts;if(d.periods)state.periods=d.periods;if(d.subs)state.subs=d.subs;if(d.savings)state.savings=d.savings;if(d.planIts)state.planIts=d.planIts;save('mappings',state.mappings);save('bills',state.bills);save('debts',state.debts);save('periods',state.periods);save('subs',state.subs);save('savings',state.savings);render();}catch(e){alert('Invalid JSON file.');}};reader.readAsText(file);input.value='';}
 function clearAll(){localStorage.clear();location.reload();}
 
 render();
