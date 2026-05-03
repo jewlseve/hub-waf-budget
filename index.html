@@ -95,8 +95,13 @@ body{font-family:system-ui,-apple-system,sans-serif;font-size:15px;color:#1a1a1a
 <script>
 const CATS=['Income','Bills','Debt','Groceries','Dining','Travel','Clothing','Shopping','Home','Entertainment','Health','Personal Care','Work Expenses','Remittance','Savings','Transfer','Other'];
 const BARCOL={Bills:'#378ADD',Debt:'#E24B4A',Groceries:'#4C9A2A',Dining:'#BA7517',Travel:'#534AB7',Clothing:'#D4537E',Shopping:'#E8873A',Entertainment:'#1D9E75',Other:'#888780',Remittance:'#D85A30','Work Expenses':'#5DCAA5',Home:'#7F77DD','Personal Care':'#EF9F27',Health:'#22A870',Savings:'#1D9E75',Income:'#4C9A2A'};
-const ACC_MAP={'20-17-22 43623793':'Hub','20-26-86 90632368':'Joint','20-17-22 43370569':'Waf'};
-const INC_MAP={'CAM UNI HOSP':{label:'Paycheck Waf Bank',who:'Waf'},'ADDENBROOKES':{label:'Paycheck Waf Bank',who:'Waf'},'NWLH NHS':{label:'Paycheck Hub Bank',who:'Hub'},'NHS TRUST':{label:'Paycheck Bank',who:'Hub'},'NHS ':{label:'Paycheck Bank',who:'Hub'},'SALARY':{label:'Paycheck',who:'Hub'},'WAGES':{label:'Paycheck',who:'Hub'}};
+const ACC_MAP={'20-26-86 90632368':'Hub'};
+// CAM UNI HOSP reference numbers in memo identify the source of NHS income
+// 30464712     = Hub monthly salary
+// 30464712-2   = Hub bank shifts
+// 30454770     = Waf monthly salary
+// 30454770-2   = Waf bank shifts
+const NHS_REF_MAP={'30464712-2':{label:'Paycheck Hub Bank',who:'Hub'},'30464712':{label:'Paycheck Hub',who:'Hub'},'30454770-2':{label:'Paycheck Waf Bank',who:'Waf'},'30454770':{label:'Paycheck Waf',who:'Waf'}};
 const AMEX_CAT={'Entertainment-Restaurants':'Dining','Entertainment-Bars & Cafes':'Dining','Entertainment-Sports Events':'Entertainment','General Purchases-Groceries':'Groceries','General Purchases-Pharmacies':'Health','General Purchases-Clothing Stores':'Clothing','General Purchases-Computer Supplies':'Shopping','General Purchases-Wholesale Stores':'Groceries','General Purchases-Online Purchases':'Shopping'};
 const DEFAULT_MAPS={'Cooke Curtis':{label:'Rent',cat:'Bills'},'Novuna Personal':{label:'Furniture Village',cat:'Bills'},'EE Limited':{label:'EE (SIM)',cat:'Bills'},'EE Ltd':{label:'EE Broadband',cat:'Bills'},'Scdc':{label:'Council Tax',cat:'Bills'},'Barclayloan':{label:'BarcLoan Waf',cat:'Debt'},'Bloan':{label:'BarcLoan Hub',cat:'Debt'},'B/Card Forward':{label:'Barclaycard Waf',cat:'Debt'},'Mr Rene Inapan':{label:'Barclaycard Hub',cat:'Debt'},'One Utility Bill':{label:'Electricity',cat:'Bills'},'AMERICAN EXP':{label:'Amex Payment',cat:'Transfer'},'PAYMENT RECEIVED':{label:'Amex Payment Received',cat:'Transfer'},'INSTALMENT PLAN FEE':{label:'Plan It Fee',cat:'Debt'},'AMOUNT TRANSFERRED FROM CREDIT':{label:'Plan It Transfer',cat:'Transfer'},'Amazon Prime':{label:'Amazon Prime',cat:'Bills'},'Disney':{label:'Disney+',cat:'Bills'},'Adobe':{label:'Adobe',cat:'Bills'},'Vitality':{label:'Vitality Insurance',cat:'Bills'},'Microsoft':{label:'Microsoft 365',cat:'Bills'},'Tesco':{label:'Tesco',cat:'Groceries'},'Sainsbury':{label:"Sainsbury's",cat:'Groceries'},'Lidl':{label:'Lidl',cat:'Groceries'},'Aldi':{label:'Aldi',cat:'Groceries'},'Co-op':{label:'Co-op',cat:'Groceries'},'Marks Spencer':{label:'M&S',cat:'Groceries'},'Deliveroo':{label:'Deliveroo',cat:'Dining'},'Just Eat':{label:'Just Eat',cat:'Dining'},'Uber Eats':{label:'Uber Eats',cat:'Dining'},'Compass Group':{label:'Compass (Canteen)',cat:'Dining'},'Trainline':{label:'Trainline',cat:'Travel'},'National Rail':{label:'National Rail',cat:'Travel'},'Stagecoach':{label:'Stagecoach',cat:'Travel'},'Spotify':{label:'Spotify',cat:'Entertainment'},'Netflix':{label:'Netflix',cat:'Entertainment'},'Tenpin':{label:'Tenpin Bowling',cat:'Entertainment'},'Wildlife Trust':{label:'Wildlife Trust',cat:'Bills'}};
 const DEFAULT_BILLS=[{name:'Rent',amount:1425,day:21},{name:'Council Tax',amount:192,day:8},{name:'Electricity',amount:250.73,day:7},{name:'EE (SIM)',amount:67.78,day:28},{name:'EE Broadband',amount:44.99,day:21},{name:'Furniture Village',amount:78.30,day:0},{name:'Vitality Insurance',amount:55.14,day:0},{name:'Amazon Prime',amount:8.99,day:27},{name:'Microsoft 365',amount:14.99,day:22},{name:'Disney+',amount:2.50,day:0},{name:'Adobe',amount:9.98,day:0},{name:'Wildlife Trust',amount:2.50,day:6},{name:"SOS Children's Village",amount:16.12,day:0},{name:'HP Instant Ink',amount:1.50,day:0},{name:'Water',amount:181,day:0},{name:'Apple Watch (Hub)',amount:7.50,day:0}];
@@ -252,9 +257,26 @@ function parseCSV(text,bank){
       const who=ACC_MAP[acc]||'Unknown',isCredit=amtRaw>0,amount=Math.abs(amtRaw);
       if(isCredit){
         if(sub==='Funds Transfer')continue;
-        let incLabel=rawLabel,incWho=who;
-        for(const[k,v]of Object.entries(INC_MAP)){if(rawLabel.toUpperCase().includes(k)){incLabel=v.label+' ('+who+')';incWho=v.who||who;break;}}
-        txs.push({date,rawLabel,amount,label:incLabel,cat:'Income',who:incWho,acc,_idx:0});
+        // Get full memo (including reference numbers after the tab)
+        const fullMemo=(c[5]||'').replace(/\t/g,' ').trim();
+        let incLabel=rawLabel,incWho='Unknown';
+        // Check NHS reference numbers first (most specific - check -2 before plain)
+        if(rawLabel.toUpperCase().includes('CAM UNI HOSP')||rawLabel.toUpperCase().includes('NHS')){
+          let matched=false;
+          // Order matters: check '-2' refs before plain refs
+          const orderedRefs=Object.keys(NHS_REF_MAP).sort((a,b)=>b.length-a.length);
+          for(const ref of orderedRefs){
+            if(fullMemo.includes(ref)){
+              const v=NHS_REF_MAP[ref];
+              incLabel=v.label;incWho=v.who;matched=true;break;
+            }
+          }
+          if(!matched){incLabel='NHS Income (uncategorised)';incWho='Unknown';}
+        } else {
+          // Generic: just label as Income with the source
+          incLabel='Income: '+rawLabel;incWho=who||'Unknown';
+        }
+        txs.push({date,rawLabel:rawLabel+' '+fullMemo.replace(rawLabel,'').trim(),amount,label:incLabel,cat:'Income',who:incWho,acc,_idx:0});
       } else {
         txs.push({date,rawLabel,amount,label:rawLabel,cat:'Unknown',who,acc,_idx:0});
       }
