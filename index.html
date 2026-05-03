@@ -99,8 +99,8 @@ body{font-family:system-ui,-apple-system,sans-serif;font-size:15px;color:#1a1a1a
 </div>
 
 <script>
-const CATS=['Income','Bills','Debt','Groceries','Dining','Travel','Clothing','Home','Entertainment','Health','Personal Care','Work Expenses','Remittance','Savings','Transfer','Other'];
-const BARCOLORS={Bills:'#378ADD',Debt:'#E24B4A',Groceries:'#639922',Dining:'#BA7517',Travel:'#534AB7',Clothing:'#D4537E',Entertainment:'#1D9E75',Other:'#888780',Remittance:'#D85A30','Work Expenses':'#5DCAA5',Home:'#7F77DD','Personal Care':'#EF9F27',Health:'#1D9E75',Savings:'#1D9E75'};
+const CATS=['Income','Bills','Debt','Groceries','Dining','Travel','Clothing','Shopping','Home','Entertainment','Health','Personal Care','Work Expenses','Remittance','Savings','Transfer','Other'];
+const BARCOLORS={Bills:'#378ADD',Debt:'#E24B4A',Groceries:'#639922',Dining:'#BA7517',Travel:'#534AB7',Clothing:'#D4537E',Shopping:'#E8873A',Entertainment:'#1D9E75',Other:'#888780',Remittance:'#D85A30','Work Expenses':'#5DCAA5',Home:'#7F77DD','Personal Care':'#EF9F27',Health:'#1D9E75',Savings:'#1D9E75'};
 
 const DEFAULT_MAPPINGS={'Cooke Curtis':{label:'Rent',cat:'Bills'},'Novuna Personal':{label:'Furniture Village',cat:'Bills'},'EE Limited':{label:'EE (SIM)',cat:'Bills'},'EE Ltd':{label:'EE Broadband',cat:'Bills'},'Scdc':{label:'Council Tax',cat:'Bills'},'Barclayloan':{label:'BarcLoan Waf',cat:'Debt'},'Bloan':{label:'BarcLoan Hub',cat:'Debt'},'B/Card Forward':{label:'Barclaycard Waf',cat:'Debt'},'Mr Rene Inapan':{label:'Barclaycard Hub',cat:'Debt'},'One Utility Bill':{label:'Electricity',cat:'Bills'},'Amazon Prime':{label:'Amazon Prime',cat:'Bills'},'Disney':{label:'Disney+',cat:'Bills'},'Adobe':{label:'Adobe',cat:'Bills'},'Vitality':{label:'Vitality Insurance',cat:'Bills'},'Microsoft':{label:'Microsoft 365',cat:'Bills'},'Tesco':{label:'Tesco',cat:'Groceries'},'Sainsbury':{label:"Sainsbury's",cat:'Groceries'},'Lidl':{label:'Lidl',cat:'Groceries'},'Aldi':{label:'Aldi',cat:'Groceries'},'Deliveroo':{label:'Deliveroo',cat:'Dining'},'Just Eat':{label:'Just Eat',cat:'Dining'},'Uber Eats':{label:'Uber Eats',cat:'Dining'},'Trainline':{label:'Trainline',cat:'Travel'},'National Rail':{label:'National Rail',cat:'Travel'},'Tfl':{label:'TfL',cat:'Travel'}};
 
@@ -372,7 +372,7 @@ function addIncome(){const label=document.getElementById('inc-label').value.trim
 function delExtraIncome(i){const p=getOrCreatePeriod(state.currentPeriod);p.extraIncome.splice(i,1);save('periods',state.periods);render();}
 function addExpense(){const label=document.getElementById('exp-label').value.trim();const amount=parseFloat(document.getElementById('exp-amount').value);const cat=document.getElementById('exp-cat').value;if(!label||isNaN(amount)||amount<=0)return alert('Enter a description and amount.');const p=getOrCreatePeriod(state.currentPeriod);if(!p.extraExpenses)p.extraExpenses=[];p.extraExpenses.push({label,amount,cat});save('periods',state.periods);render();}
 function delExtraExpense(i){const p=getOrCreatePeriod(state.currentPeriod);p.extraExpenses.splice(i,1);save('periods',state.periods);render();}
-const AMEX_CAT_MAP={'Entertainment-Restaurants':'Dining','Entertainment-Bars & Cafés':'Dining','Entertainment-Sports Events':'Entertainment','General Purchases-Groceries':'Groceries','General Purchases-Pharmacies':'Health','General Purchases-Clothing Stores':'Clothing','General Purchases-Computer Supplies':'Other','General Purchases-Wholesale Stores':'Groceries','General Purchases-Online Purchases':'Other'};
+const AMEX_CAT_MAP={'Entertainment-Restaurants':'Dining','Entertainment-Bars & Cafés':'Dining','Entertainment-Sports Events':'Entertainment','General Purchases-Groceries':'Groceries','General Purchases-Pharmacies':'Health','General Purchases-Clothing Stores':'Clothing','General Purchases-Computer Supplies':'Shopping','General Purchases-Wholesale Stores':'Groceries','General Purchases-Online Purchases':'Shopping'};
 
 function handleCSV(input){
   const file=input.files[0];if(!file)return;
@@ -399,12 +399,21 @@ function parseCSV(text,bank){
   const lines=text.split('\n').filter(l=>l.trim());
   const txs=[];
   if(bank==='barclays'){
+    // Barclays format: Number, Date, Account, Amount, Subcategory, Memo
     for(let i=1;i<lines.length;i++){
       const cols=parseLine(lines[i]);
-      const date=cols[0]?.trim();
-      const rawLabel=(cols[2]||cols[1]||'').trim();
-      const amt=Math.abs(parseFloat((cols[3]||cols[4]||'').replace(/[^0-9.-]/g,'')));
-      if(rawLabel&&!isNaN(amt)&&amt>0)txs.push({date,rawLabel,amount:amt,label:rawLabel,cat:'Unknown',_idx:0});
+      if(cols.length<4)continue;
+      const date=cols[1]?.trim();
+      const amtRaw=parseFloat((cols[3]||'').replace(/[^0-9.-]/g,''));
+      const subcategory=(cols[4]||'').trim();
+      const rawLabel=(cols[5]||'').split('\t')[0].trim();
+      if(!rawLabel||isNaN(amtRaw)||amtRaw===0)continue;
+      // Skip incoming Funds Transfers (salary transfers between own accounts)
+      if(subcategory==='Funds Transfer'&&amtRaw>0)continue;
+      // Skip Counter Credits (bank shift income - entered manually)
+      if(subcategory==='Counter Credit')continue;
+      const amount=Math.abs(amtRaw);
+      txs.push({date,rawLabel,amount,label:rawLabel,cat:'Unknown',subcategory,_idx:0});
     }
   } else {
     // Amex format: Date, Description, Card Member, Account #, Amount, Extended Details, Appears On Your Statement As, ..., Category
