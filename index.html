@@ -154,6 +154,32 @@ function getOrCreatePeriod(k){
   return state.periods[k];
 }
 
+function fmt(n){return'£'+Math.abs(Number(n)||0).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function catBadge(c){const cls={Bills:'badge-bills',Debt:'badge-debt',Income:'badge-income',Savings:'badge-savings',Transfer:'badge-transfer'}[c]||'badge-unknown';return`<span class="badge ${cls}">${c||'Other'}</span>`;}
+function ordinal(n){const s=['th','st','nd','rd'],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
+
+function calcPeriodTotals(k){
+  const p=getOrCreatePeriod(k);
+  const manualIncome=[...(p.income||[]),...(p.extraIncome||[])].reduce((s,i)=>s+Number(i.amount||0),0);
+  const txIncome=(p.transactions||[]).filter(t=>t.cat==='Income').reduce((s,t)=>s+Number(t.amount||0),0);
+  const totalIncome=manualIncome+txIncome;
+  const totalBills=(p.bills||[]).reduce((s,b)=>s+Number(b.amount||0),0);
+  const totalDebt=(p.debts||[]).reduce((s,d)=>s+Number(d.amount||0),0);
+  const totalSavings=(p.savings||[]).reduce((s,sv)=>s+Number(sv.amount||0),0);
+  const totalTx=(p.transactions||[]).filter(t=>t.cat!=='Income'&&t.cat!=='Transfer').reduce((s,t)=>s+Number(t.amount||0),0);
+  const totalExp=[...(p.expenses||[]),...(p.extraExpenses||[])].reduce((s,e)=>s+Number(e.amount||0),0)+totalTx;
+  const remaining=(p.rollover||0)+totalIncome-totalBills-totalDebt-totalSavings-totalExp;
+  return{totalIncome,totalBills,totalDebt,totalSavings,totalExp,remaining,rollover:p.rollover||0};
+}
+
+function periodSelect(){
+  const periods=Object.keys(state.periods).sort().reverse();
+  let s=`<select onchange="changePeriod(this.value)" style="font-size:12px;padding:4px 8px;border-radius:6px;border:0.5px solid rgba(0,0,0,0.2);background:#fff;color:#1a1a1a">`;
+  if(!periods.length)s+=`<option value="${state.currentPeriod}">${getPeriodLabel(state.currentPeriod)}</option>`;
+  periods.forEach(pk=>{s+=`<option value="${pk}" ${pk===state.currentPeriod?'selected':''}>${getPeriodLabel(pk)}</option>`;});
+  return s+`</select>`;
+}
+
 
 
 let activeTab='dashboard';
@@ -165,10 +191,7 @@ function showTab(t){
   render();
 }
 
-function periodSelect(){
-  const periods=Object.keys(state.periods).sort();
-  return`<select onchange="changePeriod(this.value)" style="font-size:12px;padding:4px 8px;border-radius:6px;border:0.5px solid rgba(0,0,0,0.2);background:#fff;color:#1a1a1a">${periods.map(pk=>`<option value="${pk}" ${pk===state.currentPeriod?'selected':''}>${getPeriodLabel(pk)}</option>`).join('')}</select>`;
-}
+
 
 function render(){
   document.getElementById('period-label').textContent=getPeriodLabel(state.currentPeriod);
