@@ -114,6 +114,7 @@ body{font-family:system-ui,-apple-system,sans-serif;font-size:15px;color:#1a1a1a
   <button class="tab" onclick="go('bills')">Bills</button>
   <button class="tab" onclick="go('debts')">Debts</button>
   <button class="tab" onclick="go('planits')">Plan It / BNPL</button>
+  <button class="tab" onclick="go('philippines')">Philippines</button>
   <button class="tab" onclick="go('savings')">Savings &amp; Subs</button>
   <button class="tab" onclick="go('settings')">Settings</button>
 </div>
@@ -121,10 +122,12 @@ body{font-family:system-ui,-apple-system,sans-serif;font-size:15px;color:#1a1a1a
 </div>
 <script>
 // ───────── DEFAULTS ─────────
-const DEFAULT_CATS=['Income','Bills','Debt','Groceries','Dining','Travel','Clothing','Shopping','Home','Entertainment','Health','Personal Care','Work Expenses','Remittance','Savings','Transfer','Other'];
-const LOCKED_CATS=['Income','Bills','Debt','Savings','Transfer','Other']; // can't be deleted
-const BARCOL={Bills:'#378ADD',Debt:'#E24B4A',Groceries:'#4C9A2A',Dining:'#BA7517',Travel:'#534AB7',Clothing:'#D4537E',Shopping:'#E8873A',Entertainment:'#1D9E75',Other:'#888780',Remittance:'#D85A30','Work Expenses':'#5DCAA5',Home:'#7F77DD','Personal Care':'#EF9F27',Health:'#22A870',Savings:'#1D9E75',Income:'#4C9A2A'};
+const DEFAULT_CATS=['Income','Bills','Debt','Groceries','Dining','Travel','Clothing','Shopping','Home','Entertainment','Health','Personal Care','Work Expenses','Remittance','Send to PH','Savings','Transfer','Other'];
+const LOCKED_CATS=['Income','Bills','Debt','Savings','Transfer','Other','Send to PH']; // can't be deleted
+const BARCOL={Bills:'#378ADD',Debt:'#E24B4A',Groceries:'#4C9A2A',Dining:'#BA7517',Travel:'#534AB7',Clothing:'#D4537E',Shopping:'#E8873A',Entertainment:'#1D9E75',Other:'#888780',Remittance:'#D85A30','Work Expenses':'#5DCAA5',Home:'#7F77DD','Personal Care':'#EF9F27',Health:'#22A870',Savings:'#1D9E75',Income:'#4C9A2A','Send to PH':'#D4537E'};
 const ACC_MAP={'20-26-86 90632368':'Hub','20-17-22 43623793':'Joint'};
+// Barclays raw label keywords → debt name to auto-deduct from
+const DEBT_KEYWORDS={'AMERICAN EXP':'Amex','B/CARD FORWARD':'Barclaycard Waf','MR RENE INAPAN':'Barclaycard Hub','BARCLAYLOAN':'BarcLoan Waf','BLOAN':'BarcLoan Hub'};
 const NHS_REF_MAP={'30464712-2':{label:'Paycheck Hub Bank',who:'Hub'},'30464712':{label:'Paycheck Hub',who:'Hub'},'30454770-2':{label:'Paycheck Waf Bank',who:'Waf'},'30454770':{label:'Paycheck Waf',who:'Waf'}};
 const AMEX_CAT={'Entertainment-Restaurants':'Dining','Entertainment-Bars & Cafes':'Dining','Entertainment-Sports Events':'Entertainment','General Purchases-Groceries':'Groceries','General Purchases-Pharmacies':'Health','General Purchases-Clothing Stores':'Clothing','General Purchases-Computer Supplies':'Shopping','General Purchases-Wholesale Stores':'Groceries','General Purchases-Online Purchases':'Shopping'};
 const DEFAULT_MAPS={'Cooke Curtis':{label:'Rent',cat:'Bills'},'Novuna Personal':{label:'Furniture Village',cat:'Bills'},'EE Limited':{label:'EE (SIM)',cat:'Bills'},'EE Ltd':{label:'EE Broadband',cat:'Bills'},'Scdc':{label:'Council Tax',cat:'Bills'},'Barclayloan':{label:'BarcLoan Waf',cat:'Debt'},'Bloan':{label:'BarcLoan Hub',cat:'Debt'},'B/Card Forward':{label:'Barclaycard Waf',cat:'Debt'},'Mr Rene Inapan':{label:'Barclaycard Hub',cat:'Debt'},'One Utility Bill':{label:'Electricity',cat:'Bills'},'AMERICAN EXP':{label:'Amex Payment',cat:'Transfer'},'PAYMENT RECEIVED':{label:'Amex Payment Received',cat:'Transfer'},'INSTALMENT PLAN FEE':{label:'Plan It Fee',cat:'Debt'},'AMOUNT TRANSFERRED FROM CREDIT':{label:'Plan It Transfer',cat:'Transfer'},'Trading 212':{label:'Trading 212',cat:'Savings'},'Amazon Prime':{label:'Amazon Prime',cat:'Bills'},'Disney':{label:'Disney+',cat:'Bills'},'Adobe':{label:'Adobe',cat:'Bills'},'Vitality':{label:'Vitality Insurance',cat:'Bills'},'Microsoft':{label:'Microsoft 365',cat:'Bills'},'Tesco':{label:'Tesco',cat:'Groceries'},'Sainsbury':{label:"Sainsbury's",cat:'Groceries'},'Lidl':{label:'Lidl',cat:'Groceries'},'Aldi':{label:'Aldi',cat:'Groceries'},'Co-op':{label:'Co-op',cat:'Groceries'},'Marks Spencer':{label:'M&S',cat:'Groceries'},'Deliveroo':{label:'Deliveroo',cat:'Dining'},'Just Eat':{label:'Just Eat',cat:'Dining'},'Uber Eats':{label:'Uber Eats',cat:'Dining'},'Compass Group':{label:'Compass (Canteen)',cat:'Dining'},'Trainline':{label:'Trainline',cat:'Travel'},'National Rail':{label:'National Rail',cat:'Travel'},'Stagecoach':{label:'Stagecoach',cat:'Travel'},'Spotify':{label:'Spotify',cat:'Entertainment'},'Netflix':{label:'Netflix',cat:'Entertainment'},'Tenpin':{label:'Tenpin Bowling',cat:'Entertainment'},'Wildlife Trust':{label:'Wildlife Trust',cat:'Bills'}};
@@ -142,7 +145,17 @@ function pShort(k){if(!k||!k.includes('-'))return k||'';const[y,m]=k.split('-').
 function getP(k){if(!S.periods[k])S.periods[k]={label:pLabel(k),income:[],expenses:[],bills:[],debts:[],savings:[],transactions:[],extraIncome:[],extraExpenses:[],rollover:0};return S.periods[k];}
 
 // ───────── STATE ─────────
-const S={maps:ld('maps',DEFAULT_MAPS),bills:ld('bills',DEFAULT_BILLS),debts:ld('debts',DEFAULT_DEBTS),periods:ld('periods',{}),subs:ld('subs',[]),savings:ld('savings',[]),planIts:ld('planIts',[]),customCats:ld('customCats',[]),cur:ld('cur',curKey())};
+const S={maps:ld('maps',DEFAULT_MAPS),bills:ld('bills',DEFAULT_BILLS),debts:ld('debts',DEFAULT_DEBTS),periods:ld('periods',{}),subs:ld('subs',[]),savings:ld('savings',[]),planIts:ld('planIts',[]),customCats:ld('customCats',[]),phBanks:ld('phBanks',[{name:'BDO',balance:0,currency:'PHP'}]),phTxs:ld('phTxs',[]),phTransfers:ld('phTransfers',[]),debtPayments:ld('debtPayments',[]),planItPayments:ld('planItPayments',[]),amexUpdates:ld('amexUpdates',[]),cur:ld('cur',curKey())};
+
+// Recalculate debt balance from initial balance and payments
+function debtBalance(debtName){
+  const d=S.debts.find(x=>x.name===debtName);
+  if(!d)return 0;
+  const init=Number(d.initialBalance||0);
+  const paid=(S.debtPayments||[]).filter(p=>p.debt===debtName).reduce((s,p)=>s+Number(p.amount||0),0);
+  return Math.max(0,init-paid);
+}
+function debtPaidTotal(debtName){return (S.debtPayments||[]).filter(p=>p.debt===debtName).reduce((s,p)=>s+Number(p.amount||0),0);}
 
 function getCats(){return [...DEFAULT_CATS,...S.customCats.filter(c=>!DEFAULT_CATS.includes(c))];}
 
@@ -157,10 +170,10 @@ function calcT(k){const p=getP(k);const txInc=(p.transactions||[]).filter(t=>t.c
 function pSel(){const keys=Object.keys(S.periods).sort().reverse();if(!keys.includes(S.cur))keys.unshift(S.cur);return '<select onchange="chgP(this.value)" style="font-size:12px;padding:4px 8px;border-radius:6px;border:0.5px solid rgba(0,0,0,0.18);background:#fff">'+keys.map(k=>'<option value="'+k+'"'+(k===S.cur?' selected':'')+'>'+pLabel(k)+'</option>').join('')+'</select>';}
 
 // ───────── UNDO/REDO ─────────
-function snapshot(){const snap={maps:S.maps,bills:S.bills,debts:S.debts,periods:S.periods,subs:S.subs,savings:S.savings,planIts:S.planIts,customCats:S.customCats};const u=ld('undoStack',[]);u.push(JSON.stringify(snap));if(u.length>20)u.shift();sv('undoStack',u);sv('redoStack',[]);}
-function applySnap(s){S.maps=s.maps||{};S.bills=s.bills||[];S.debts=s.debts||[];S.periods=s.periods||{};S.subs=s.subs||[];S.savings=s.savings||[];S.planIts=s.planIts||[];S.customCats=s.customCats||[];sv('maps',S.maps);sv('bills',S.bills);sv('debts',S.debts);sv('periods',S.periods);sv('subs',S.subs);sv('savings',S.savings);sv('planIts',S.planIts);sv('customCats',S.customCats);}
-function doUndo(){const u=ld('undoStack',[]);if(!u.length)return alert('Nothing to undo.');const cur={maps:S.maps,bills:S.bills,debts:S.debts,periods:S.periods,subs:S.subs,savings:S.savings,planIts:S.planIts,customCats:S.customCats};const r=ld('redoStack',[]);r.push(JSON.stringify(cur));sv('redoStack',r);applySnap(JSON.parse(u.pop()));sv('undoStack',u);render();}
-function doRedo(){const r=ld('redoStack',[]);if(!r.length)return alert('Nothing to redo.');const cur={maps:S.maps,bills:S.bills,debts:S.debts,periods:S.periods,subs:S.subs,savings:S.savings,planIts:S.planIts,customCats:S.customCats};const u=ld('undoStack',[]);u.push(JSON.stringify(cur));sv('undoStack',u);applySnap(JSON.parse(r.pop()));sv('redoStack',r);render();}
+function snapshot(){const snap={maps:S.maps,bills:S.bills,debts:S.debts,periods:S.periods,subs:S.subs,savings:S.savings,planIts:S.planIts,customCats:S.customCats,phBanks:S.phBanks,phTxs:S.phTxs,phTransfers:S.phTransfers,debtPayments:S.debtPayments,planItPayments:S.planItPayments,amexUpdates:S.amexUpdates};const u=ld('undoStack',[]);u.push(JSON.stringify(snap));if(u.length>20)u.shift();sv('undoStack',u);sv('redoStack',[]);}
+function applySnap(s){S.maps=s.maps||{};S.bills=s.bills||[];S.debts=s.debts||[];S.periods=s.periods||{};S.subs=s.subs||[];S.savings=s.savings||[];S.planIts=s.planIts||[];S.customCats=s.customCats||[];S.phBanks=s.phBanks||[];S.phTxs=s.phTxs||[];S.phTransfers=s.phTransfers||[];S.debtPayments=s.debtPayments||[];S.planItPayments=s.planItPayments||[];S.amexUpdates=s.amexUpdates||[];sv('maps',S.maps);sv('bills',S.bills);sv('debts',S.debts);sv('periods',S.periods);sv('subs',S.subs);sv('savings',S.savings);sv('planIts',S.planIts);sv('customCats',S.customCats);sv('phBanks',S.phBanks);sv('phTxs',S.phTxs);sv('phTransfers',S.phTransfers);sv('debtPayments',S.debtPayments);sv('planItPayments',S.planItPayments);sv('amexUpdates',S.amexUpdates);}
+function doUndo(){const u=ld('undoStack',[]);if(!u.length)return alert('Nothing to undo.');const cur={maps:S.maps,bills:S.bills,debts:S.debts,periods:S.periods,subs:S.subs,savings:S.savings,planIts:S.planIts,customCats:S.customCats,phBanks:S.phBanks,phTxs:S.phTxs,phTransfers:S.phTransfers,debtPayments:S.debtPayments,planItPayments:S.planItPayments,amexUpdates:S.amexUpdates};const r=ld('redoStack',[]);r.push(JSON.stringify(cur));sv('redoStack',r);applySnap(JSON.parse(u.pop()));sv('undoStack',u);render();}
+function doRedo(){const r=ld('redoStack',[]);if(!r.length)return alert('Nothing to redo.');const cur={maps:S.maps,bills:S.bills,debts:S.debts,periods:S.periods,subs:S.subs,savings:S.savings,planIts:S.planIts,customCats:S.customCats,phBanks:S.phBanks,phTxs:S.phTxs,phTransfers:S.phTransfers,debtPayments:S.debtPayments,planItPayments:S.planItPayments,amexUpdates:S.amexUpdates};const u=ld('undoStack',[]);u.push(JSON.stringify(cur));sv('undoStack',u);applySnap(JSON.parse(r.pop()));sv('redoStack',r);render();}
 
 // ───────── FIX ACTIONS ─────────
 function fixDuplicates(){if(!confirm('Remove exact duplicate transactions (same date, label, and amount) within each period?'))return;snapshot();let removed=0;Object.keys(S.periods).forEach(k=>{const seen=new Set();const before=(S.periods[k].transactions||[]).length;S.periods[k].transactions=(S.periods[k].transactions||[]).filter(t=>{const key=t.date+'|'+t.rawLabel+'|'+t.amount;if(seen.has(key))return false;seen.add(key);return true;});removed+=before-(S.periods[k].transactions||[]).length;});sv('periods',S.periods);alert('Removed '+removed+' duplicate(s).');render();}
@@ -204,13 +217,13 @@ function saveOverride(mk){const v=document.getElementById('ov_'+mk).value.trim()
 
 // ───────── ROUTING ─────────
 let tab='dashboard',searchQ='';
-function go(t){tab=t;document.querySelectorAll('.tab').forEach((el,i)=>{el.classList.toggle('active',['dashboard','history','entry','import','search','bills','debts','planits','savings','settings'][i]===t);});render();}
+function go(t){tab=t;document.querySelectorAll('.tab').forEach((el,i)=>{el.classList.toggle('active',['dashboard','history','entry','import','search','bills','debts','planits','philippines','savings','settings'][i]===t);});render();}
 function render(){
   document.getElementById('period-label').textContent=pLabel(S.cur);
   document.getElementById('undoBtn').disabled=ld('undoStack',[]).length===0;
   document.getElementById('redoBtn').disabled=ld('redoStack',[]).length===0;
   const el=document.getElementById('app');
-  const fns={dashboard:rDash,history:rHist,entry:rEntry,import:rImport,search:rSearch,bills:rBills,debts:rDebts,planits:rPlanIts,savings:rSavings,settings:rSettings};
+  const fns={dashboard:rDash,history:rHist,entry:rEntry,import:rImport,search:rSearch,bills:rBills,debts:rDebts,planits:rPlanIts,philippines:rPhilippines,savings:rSavings,settings:rSettings};
   try{el.innerHTML=(fns[tab]||rDash)();}
   catch(e){el.innerHTML='<div class="card"><div class="empty">Error: '+e.message+'</div></div>';console.error(e);}
 }
@@ -310,66 +323,93 @@ function rBills(){
 
 // ───────── DEBTS ─────────
 function rDebts(){
-  const sorted=S.debts.filter(d=>Number(d.balance||0)>0).sort((a,b)=>a.balance-b.balance);
-  const totB=S.debts.reduce((s,d)=>s+Number(d.balance||0),0),totM=S.debts.reduce((s,d)=>s+Number(d.minPayment||0),0);
-  return '<div class="card"><div class="card-title">Add / update debt</div><div class="alert alert-info">Snowball method: pay minimums on all, throw extra at the smallest balance first.</div><div class="form-row"><div class="fg"><label>Debt name</label><input id="dN" placeholder="e.g. Amex"></div><div class="fg"><label>Current balance (£)</label><input id="dB" type="number" placeholder="0.00" step="0.01"></div></div><div class="form-row"><div class="fg"><label>Interest rate (%)</label><input id="dR" type="number" placeholder="0.0" step="0.1"></div><div class="fg"><label>Min payment (£/mo)</label><input id="dM" type="number" placeholder="0.00" step="0.01"></div></div><div class="fg" style="margin-bottom:10px"><label>Notes</label><input id="dX" placeholder="e.g. Fraud loan"></div><div class="btn-row"><button class="btn primary" onclick="addDebt()">Save debt</button></div></div>'+
-  '<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px"><div class="card-title" style="margin:0">Debt snowball</div><div style="font-size:13px;color:#888">Total: <strong style="color:#A32D2D">'+fmt(totB)+'</strong> · Min: <strong>'+fmt(totM)+'/mo</strong></div></div>'+(sorted.length?sorted.map((d,i)=>'<div class="dcard"><div class="snowball-n">'+(i+1)+'</div><div class="dcard-info"><div class="dcard-name">'+esc(d.name)+'</div><div class="dcard-meta">'+esc(d.notes||'')+' '+(d.rate>0?'· '+d.rate+'% APR':'')+'</div><div class="pbar"><div class="pbar-fill" style="width:'+(d.initialBalance>0?Math.min(100,Math.round((d.initialBalance-d.balance)/d.initialBalance*100)):0)+'%"></div></div><div style="font-size:11px;color:#888;margin-top:2px">'+(d.initialBalance>0?Math.min(100,Math.round((d.initialBalance-d.balance)/d.initialBalance*100))+'% paid':'Set initial balance')+'</div></div><div class="dcard-right"><div class="dcard-bal">'+fmt(d.balance)+'</div><div class="dcard-sub">min '+fmt(d.minPayment||0)+'/mo</div><button class="btn danger" onclick="delDebt(\''+esc(d.name)+'\')" style="margin-top:6px">Remove</button></div></div>').join(''):'<div class="empty">Add balances above.</div>')+(S.debts.filter(d=>!Number(d.balance||0)).length?'<div style="font-size:12px;color:#999;margin-top:12px;padding-top:10px;border-top:0.5px solid rgba(0,0,0,0.06)">Awaiting balances: '+S.debts.filter(d=>!Number(d.balance||0)).map(d=>esc(d.name)).join(', ')+'</div>':'')+'</div>';
+  const visibleDebts=S.debts.map(d=>{const bal=d.initialBalance>0?debtBalance(d.name):Number(d.balance||0);const paid=debtPaidTotal(d.name);return Object.assign({},d,{_currentBal:bal,_paid:paid});});
+  const sorted=visibleDebts.filter(d=>d._currentBal>0).sort((a,b)=>a._currentBal-b._currentBal);
+  const totB=visibleDebts.reduce((s,d)=>s+d._currentBal,0),totM=S.debts.reduce((s,d)=>s+Number(d.minPayment||0),0);
+  return '<div class="card"><div class="card-title">Add / update debt</div><div class="alert alert-info">Set the <strong>initial balance</strong> when first adding a debt. Payments will reduce it automatically. Use Pay / Undo on each card below to manually log payments.</div><div class="form-row"><div class="fg"><label>Debt name</label><input id="dN" placeholder="e.g. Amex"></div><div class="fg"><label>Initial balance (£)</label><input id="dB" type="number" placeholder="0.00" step="0.01"></div></div><div class="form-row"><div class="fg"><label>Interest rate (%)</label><input id="dR" type="number" placeholder="0.0" step="0.1"></div><div class="fg"><label>Min payment (£/mo)</label><input id="dM" type="number" placeholder="0.00" step="0.01"></div></div><div class="fg" style="margin-bottom:10px"><label>Notes</label><input id="dX" placeholder="e.g. Fraud loan"></div><div class="btn-row"><button class="btn primary" onclick="addDebt()">Save debt</button></div></div>'+
+  '<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px"><div class="card-title" style="margin:0">Debt snowball</div><div style="font-size:13px;color:#888">Total: <strong style="color:#A32D2D">'+fmt(totB)+'</strong> · Min: <strong>'+fmt(totM)+'/mo</strong></div></div>'+
+  (sorted.length?sorted.map((d,i)=>{
+    const init=Number(d.initialBalance||0);
+    const pct=init>0?Math.min(100,Math.round(d._paid/init*100)):0;
+    const recentPayments=(S.debtPayments||[]).filter(p=>p.debt===d.name).sort((a,b)=>(b._id||0)-(a._id||0)).slice(0,5);
+    const isAmex=d.name.toLowerCase()==='amex';
+    const lastAmexUpdate=isAmex?(S.amexUpdates||[]).sort((a,b)=>(b._id||0)-(a._id||0))[0]:null;
+    return '<div class="dcard"><div class="snowball-n">'+(i+1)+'</div><div class="dcard-info"><div style="display:flex;align-items:baseline;gap:8px"><div class="dcard-name">'+esc(d.name)+'</div>'+(d.notes?'<div style="font-size:12px;color:#888">'+esc(d.notes)+'</div>':'')+'</div><div class="dcard-meta">'+(d.rate>0?d.rate+'% APR · ':'')+'paid '+fmt(d._paid)+' of '+fmt(init)+'</div><div class="pbar"><div class="pbar-fill" style="width:'+pct+'%"></div></div><div style="font-size:11px;color:#888;margin-top:2px">'+pct+'% paid off</div>'+
+    (isAmex?'<div style="margin-top:8px;padding:8px;background:#f5f5f0;border-radius:6px;font-size:12px"><strong>Amex statement balance</strong>'+(lastAmexUpdate?' (updated '+lastAmexUpdate.date+')':'')+': £'+(lastAmexUpdate?lastAmexUpdate.balance:'—')+' <button class="btn" style="margin-left:8px;font-size:11px;padding:3px 8px" onclick="updateAmexBal()">Update</button></div>':'')+
+    (recentPayments.length?'<details style="margin-top:8px"><summary style="cursor:pointer;font-size:11px;color:#666">Payment history ('+(S.debtPayments||[]).filter(p=>p.debt===d.name).length+')</summary><table class="tbl" style="margin-top:6px;font-size:12px"><thead><tr><th>Date</th><th>Amount</th><th>Source</th><th></th></tr></thead><tbody>'+(S.debtPayments||[]).filter(p=>p.debt===d.name).sort((a,b)=>(b._id||0)-(a._id||0)).map(p=>'<tr><td><input class="tx-edit-input" value="'+esc(p.date)+'" onchange="editDebtPayment(\''+p._id+'\',\'date\',this.value)"></td><td><input class="tx-edit-input" type="number" step="0.01" value="'+p.amount+'" onchange="editDebtPayment(\''+p._id+'\',\'amount\',this.value)"></td><td>'+(p.source==='auto'?'<span class="badge b-bills">Auto</span>':'<span class="badge b-other">Manual</span>')+'</td><td><button class="btn danger" onclick="delDebtPayment(\''+p._id+'\')">x</button></td></tr>').join('')+'</tbody></table></details>':'')+
+    '</div><div class="dcard-right"><div class="dcard-bal">'+fmt(d._currentBal)+'</div><div class="dcard-sub">min '+fmt(d.minPayment||0)+'/mo</div><div style="margin-top:8px;display:flex;flex-direction:column;gap:4px"><button class="btn primary" style="font-size:11px;padding:4px 10px" onclick="payDebt(\''+esc(d.name)+'\')">Pay '+fmt(d.minPayment||0)+'</button><button class="btn" style="font-size:11px;padding:4px 10px" onclick="payDebtCustom(\''+esc(d.name)+'\')">Pay custom</button><button class="btn" style="font-size:11px;padding:4px 10px" onclick="undoDebtPayment(\''+esc(d.name)+'\')">Undo last</button><button class="btn danger" onclick="delDebt(\''+esc(d.name)+'\')" style="margin-top:4px">Remove</button></div></div></div>';
+  }).join(''):'<div class="empty">Add balances above. Set initial balance to enable payment tracking.</div>')+
+  (visibleDebts.filter(d=>!d._currentBal).length?'<div style="font-size:12px;color:#999;margin-top:12px;padding-top:10px;border-top:0.5px solid rgba(0,0,0,0.06)">Paid off / awaiting balances: '+visibleDebts.filter(d=>!d._currentBal).map(d=>esc(d.name)+(d._paid>0?' (paid '+fmt(d._paid)+')':'')).join(', ')+'</div>':'')+'</div>';
 }
 
-// ───────── PLAN IT ─────────
 function rPlanIts(){
-  const plans=S.planIts||[],totMo=plans.reduce((s,p)=>s+Number(p.monthlyPayment||0),0),totRem=plans.reduce((s,p)=>s+(Number(p.monthsRemaining||0)*Number(p.monthlyPayment||0)),0);
-  return '<div class="card"><div class="card-title">Add Amex Plan It</div><div class="form-row"><div class="fg"><label>Plan name</label><input id="piN" placeholder="e.g. iPhone 16"></div><div class="fg"><label>What was purchased</label><input id="piI" placeholder="e.g. iPhone 16 Pro"></div></div><div class="form-row three"><div class="fg"><label>Total amount (£)</label><input id="piT" type="number" placeholder="0.00" step="0.01"></div><div class="fg"><label>Monthly payment (£)</label><input id="piP" type="number" placeholder="0.00" step="0.01"></div><div class="fg"><label>Months remaining</label><input id="piM" type="number" placeholder="0" min="0"></div></div><div class="form-row"><div class="fg"><label>End date</label><input id="piE" type="month"></div><div class="fg"><label>Notes</label><input id="piX" placeholder="e.g. 0% fee"></div></div><div class="btn-row"><button class="btn primary" onclick="addPI()">Add Plan It</button></div></div>'+
-  (plans.length?'<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px"><div class="card-title" style="margin:0">Active plans</div><div style="font-size:13px;color:#888">'+fmt(totMo)+'/mo · '+fmt(totRem)+' remaining</div></div>'+plans.map((p,i)=>{const paid=Number(p.total||0)-(Number(p.monthsRemaining||0)*Number(p.monthlyPayment||0)),pct=Number(p.total||0)>0?Math.min(100,Math.round(paid/p.total*100)):0;return'<div class="dcard"><div class="dcard-info"><div style="display:flex;align-items:baseline;gap:8px"><div class="dcard-name">'+esc(p.name)+'</div><div style="font-size:12px;color:#888">'+esc(p.item||'')+'</div></div><div class="dcard-meta">'+p.monthsRemaining+' months remaining'+(p.endDate?' · ends '+p.endDate:'')+(p.notes?' · '+esc(p.notes):'')+'</div><div class="pbar"><div class="pbar-fill" style="width:'+pct+'%;background:#534AB7"></div></div><div style="font-size:11px;color:#888;margin-top:2px">'+pct+'% paid · '+fmt(paid)+' of '+fmt(p.total||0)+'</div></div><div class="dcard-right"><div class="dcard-bal" style="color:#534AB7">'+fmt(Number(p.monthsRemaining||0)*Number(p.monthlyPayment||0))+'</div><div class="dcard-sub">remaining</div><div style="font-size:12px;color:#888;margin-top:2px">'+fmt(p.monthlyPayment)+'/mo</div><button class="btn danger" onclick="delPI('+i+')" style="margin-top:6px">Remove</button></div></div>';}).join('')+'</div>':'<div class="card"><div class="empty">No Plan Its yet.</div></div>');
+  const plans=S.planIts||[];
+  const visiblePlans=plans.map(p=>{const paid=(S.planItPayments||[]).filter(pp=>pp.plan===p.name).reduce((s,pp)=>s+Number(pp.amount||0),0);const monthsPaid=(S.planItPayments||[]).filter(pp=>pp.plan===p.name).length;const monthsLeft=Math.max(0,Number(p.monthsRemaining||0)-monthsPaid);return Object.assign({},p,{_paid:paid,_monthsPaid:monthsPaid,_monthsLeft:monthsLeft});});
+  const totMo=visiblePlans.filter(p=>p._monthsLeft>0).reduce((s,p)=>s+Number(p.monthlyPayment||0),0);
+  const totRem=visiblePlans.reduce((s,p)=>s+(p._monthsLeft*Number(p.monthlyPayment||0)),0);
+  return '<div class="card"><div class="card-title">Add Amex Plan It</div><div class="form-row"><div class="fg"><label>Plan name</label><input id="piN" placeholder="e.g. iPhone 16"></div><div class="fg"><label>What was purchased</label><input id="piI" placeholder="e.g. iPhone 16 Pro"></div></div><div class="form-row three"><div class="fg"><label>Total amount (£)</label><input id="piT" type="number" placeholder="0.00" step="0.01"></div><div class="fg"><label>Monthly payment (£)</label><input id="piP" type="number" placeholder="0.00" step="0.01"></div><div class="fg"><label>Total months</label><input id="piM" type="number" placeholder="0" min="0"></div></div><div class="form-row"><div class="fg"><label>End date</label><input id="piE" type="month"></div><div class="fg"><label>Notes</label><input id="piX" placeholder="e.g. 0% fee"></div></div><div class="btn-row"><button class="btn primary" onclick="addPI()">Add Plan It</button></div></div>'+
+  (visiblePlans.length?'<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px"><div class="card-title" style="margin:0">Active plans</div><div style="font-size:13px;color:#888">'+fmt(totMo)+'/mo · '+fmt(totRem)+' remaining</div></div><div class="btn-row" style="margin-bottom:12px"><button class="btn primary" onclick="payAllPlanIts()">Pay all this month ('+fmt(totMo)+')</button><button class="btn" onclick="undoLastPlanItPayment()">Undo last payment</button></div>'+
+  visiblePlans.map((p,i)=>{const total=Number(p.total||0);const pct=total>0?Math.min(100,Math.round(p._paid/total*100)):0;return'<div class="dcard"><div class="dcard-info"><div style="display:flex;align-items:baseline;gap:8px"><div class="dcard-name">'+esc(p.name)+'</div><div style="font-size:12px;color:#888">'+esc(p.item||'')+'</div></div><div class="dcard-meta">'+p._monthsLeft+' of '+(p.monthsRemaining||0)+' months remaining'+(p.endDate?' · ends '+p.endDate:'')+(p.notes?' · '+esc(p.notes):'')+'</div><div class="pbar"><div class="pbar-fill" style="width:'+pct+'%;background:#534AB7"></div></div><div style="font-size:11px;color:#888;margin-top:2px">'+pct+'% paid · '+fmt(p._paid)+' of '+fmt(total)+'</div>'+
+  ((S.planItPayments||[]).filter(pp=>pp.plan===p.name).length?'<details style="margin-top:8px"><summary style="cursor:pointer;font-size:11px;color:#666">Payment history</summary><table class="tbl" style="margin-top:6px;font-size:12px"><thead><tr><th>Date</th><th>Amount</th><th></th></tr></thead><tbody>'+(S.planItPayments||[]).filter(pp=>pp.plan===p.name).sort((a,b)=>(b._id||0)-(a._id||0)).map(pp=>'<tr><td>'+esc(pp.date)+'</td><td>'+fmt(pp.amount)+'</td><td><button class="btn danger" onclick="delPlanItPayment(\''+pp._id+'\')">x</button></td></tr>').join('')+'</tbody></table></details>':'')+
+  '</div><div class="dcard-right"><div class="dcard-bal" style="color:#534AB7">'+fmt(p._monthsLeft*Number(p.monthlyPayment||0))+'</div><div class="dcard-sub">remaining</div><div style="font-size:12px;color:#888;margin-top:2px">'+fmt(p.monthlyPayment)+'/mo</div><div style="margin-top:8px;display:flex;flex-direction:column;gap:4px"><button class="btn primary" style="font-size:11px;padding:4px 10px" onclick="payPlanIt(\''+esc(p.name)+'\')" '+(p._monthsLeft<=0?'disabled':'')+'>Pay '+fmt(p.monthlyPayment)+'</button><button class="btn" style="font-size:11px;padding:4px 10px" onclick="undoPlanItPayment(\''+esc(p.name)+'\')">Undo last</button><button class="btn danger" onclick="delPI('+i+')" style="margin-top:4px">Remove</button></div></div></div>';}).join('')+'</div>':'<div class="card"><div class="empty">No Plan Its yet.</div></div>');
 }
 
-// ───────── SAVINGS & SUBS ─────────
+
+
+function rPhilippines(){
+  const banks=S.phBanks||[];
+  const txs=S.phTxs||[];
+  const transfers=S.phTransfers||[];
+  const totalPHP=banks.reduce((s,b)=>s+Number(b.balance||0),0);
+  const pending=[];
+  Object.entries(S.periods).forEach(([k,p])=>{(p.transactions||[]).filter(t=>t.cat==='Send to PH').forEach(t=>{const matched=transfers.find(tr=>tr.gbpDate===t.date&&Math.abs(Number(tr.gbpAmount)-Number(t.amount))<0.01);if(!matched)pending.push(Object.assign({},t,{_pk:k}));});});
+  return '<div class="card"><div class="card-title">Philippine banks</div><div class="alert alert-info">Track balances on your Philippine bank accounts. All amounts in <strong>PHP (₱)</strong>.</div><div class="form-row three"><div class="fg"><label>Bank name</label><input id="bkN" placeholder="e.g. BDO, BPI..."></div><div class="fg"><label>Current balance (PHP ₱)</label><input id="bkB" type="number" step="0.01" placeholder="0.00"></div><div class="fg"><label>Notes</label><input id="bkX" placeholder="optional"></div></div><div class="btn-row"><button class="btn primary" onclick="addPhBank()">Add bank</button></div>'+
+  (banks.length?'<div class="hr"></div><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px"><div style="font-weight:500">Total across all banks</div><div style="font-size:18px;font-weight:500">₱'+totalPHP.toLocaleString()+'</div></div>'+banks.map((b,i)=>'<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:0.5px solid rgba(0,0,0,0.06)"><div><div style="font-weight:500">'+esc(b.name)+'</div>'+(b.notes?'<div style="font-size:12px;color:#888">'+esc(b.notes)+'</div>':'')+'</div><div style="display:flex;align-items:center;gap:10px"><input class="tx-edit-input" type="number" step="0.01" value="'+(b.balance||0)+'" onchange="setPhBankBalance('+i+',this.value)" style="width:120px;text-align:right">₱<button class="btn danger" onclick="delPhBank('+i+')">x</button></div></div>').join(''):'')+'</div>'+
+  (pending.length?'<div class="card"><div class="card-title">Pending UK→PH conversions ('+pending.length+')</div><div class="alert alert-warn">These Barclays transactions are tagged "Send to PH" but not yet converted to PHP. Enter the PHP amount received and select the bank.</div>'+pending.map(t=>{const tid='pend_'+t._pk+'_'+t._idx;return '<div style="border:0.5px solid rgba(0,0,0,0.1);border-radius:8px;padding:12px;margin-bottom:10px"><div style="font-size:13px;color:#666;margin-bottom:6px">'+esc(t.date)+' · '+esc(t.label||t.rawLabel)+'</div><div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><div style="font-weight:500">£'+Number(t.amount).toFixed(2)+' GBP</div><span style="color:#888">→</span><input id="'+tid+'_php" type="number" step="0.01" placeholder="PHP received" style="width:140px;font-size:13px;padding:6px 8px;border-radius:6px;border:0.5px solid rgba(0,0,0,0.2)"><span style="color:#888">to</span><select id="'+tid+'_bank" style="font-size:13px;padding:6px 8px;border-radius:6px;border:0.5px solid rgba(0,0,0,0.2)">'+banks.map(b=>'<option value="'+esc(b.name)+'">'+esc(b.name)+'</option>').join('')+'</select><button class="btn primary" onclick="confirmTransfer(\''+t._pk+'\','+t._idx+',\''+tid+'\')">Send</button></div></div>';}).join('')+'</div>':'')+
+  (transfers.length?'<div class="card"><div class="card-title">Transfer history</div><table class="tbl"><thead><tr><th>Date (UK)</th><th>GBP</th><th>PHP</th><th>Rate</th><th>Bank</th><th></th></tr></thead><tbody>'+transfers.slice().sort((a,b)=>(b._id||0)-(a._id||0)).map(tr=>'<tr><td>'+esc(tr.gbpDate)+'</td><td>£'+Number(tr.gbpAmount).toFixed(2)+'</td><td>₱'+Number(tr.phpAmount).toLocaleString()+'</td><td style="font-size:12px;color:#666">1 GBP = ₱'+(Number(tr.phpAmount)/Number(tr.gbpAmount)).toFixed(2)+'</td><td>'+esc(tr.bank)+'</td><td><button class="btn danger" onclick="delTransfer(\''+tr._id+'\')">x</button></td></tr>').join('')+'</tbody></table></div>':'')+
+  '<div class="card"><div class="card-title">Manual PHP transactions</div><div class="alert alert-info">Log spending or movements within your PH banks (e.g. CPAWCO loan payments).</div><div class="form-row three"><div class="fg"><label>Date</label><input id="phD" type="date"></div><div class="fg"><label>Bank</label><select id="phB">'+banks.map(b=>'<option value="'+esc(b.name)+'">'+esc(b.name)+'</option>').join('')+'</select></div><div class="fg"><label>Amount (PHP, neg=spend)</label><input id="phA" type="number" step="0.01" placeholder="0.00"></div></div><div class="form-row"><div class="fg"><label>Description</label><input id="phL" placeholder="e.g. CPAWCO payment"></div><div class="fg"><label>Category</label><select id="phC">'+getCats().map(c=>'<option>'+c+'</option>').join('')+'</select></div></div><div class="btn-row"><button class="btn primary" onclick="addPhTx()">Add PH transaction</button></div>'+
+  (txs.length?'<div class="hr"></div><table class="tbl"><thead><tr><th>Date</th><th>Bank</th><th>Description</th><th>Category</th><th style="text-align:right">PHP</th><th></th></tr></thead><tbody>'+txs.slice().sort((a,b)=>(b._id||0)-(a._id||0)).map(t=>'<tr><td>'+esc(t.date)+'</td><td>'+esc(t.bank)+'</td><td>'+esc(t.label)+'</td><td>'+cb(t.cat)+'</td><td style="text-align:right;color:'+(t.amount<0?'#A32D2D':'#0F6E56')+'">₱'+Number(t.amount).toLocaleString()+'</td><td><button class="btn danger" onclick="delPhTx(\''+t._id+'\')">x</button></td></tr>').join('')+'</tbody></table>':'')+'</div>'+
+  '<div class="card"><div class="card-title">CPAWCO Loan note</div><div style="font-size:13px;color:#666">CPAWCO appears in your main Debts tab. To log a payment, tap <strong>Pay</strong> there. Since payments come from a PH bank, also add a corresponding manual PH transaction (negative amount) above to reflect the deduction.</div></div>';
+}
+
 function rSavings(){
   const tS=S.savings.reduce((s,sv)=>s+Number(sv.saved||0),0),tG=S.savings.reduce((s,sv)=>s+Number(sv.goal||0),0),tSub=S.subs.reduce((s,sb)=>{const a=Number(sb.amount||0);return s+(sb.cycle==='annual'?a/12:sb.cycle==='weekly'?a*52/12:a);},0);
-  return '<div class="card"><div class="card-title">Add savings goal</div><div class="form-row"><div class="fg"><label>Goal name</label><input id="svN" placeholder="e.g. Emergency fund"></div><div class="fg"><label>Target (£)</label><input id="svG" type="number" placeholder="0.00" step="0.01"></div></div><div class="form-row"><div class="fg"><label>Saved so far (£)</label><input id="svS" type="number" placeholder="0.00" step="0.01"></div><div class="fg"><label>Platform</label><input id="svP" placeholder="e.g. Trading 212"></div></div><div class="btn-row"><button class="btn primary" onclick="addSV()">Add goal</button></div></div>'+
-  (S.savings.length?'<div class="card"><div style="display:flex;justify-content:space-between;margin-bottom:14px"><div class="card-title" style="margin:0">Savings goals</div><div style="font-size:13px;color:#888">'+fmt(tS)+' of '+fmt(tG)+'</div></div>'+S.savings.map((sv,i)=>'<div style="margin-bottom:16px"><div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-weight:500">'+esc(sv.name)+(sv.platform?' <span style="font-size:11px;color:#888">via '+esc(sv.platform)+'</span>':'')+'</div><div style="font-size:13px">'+fmt(sv.saved||0)+' <span style="color:#888">of '+fmt(sv.goal||0)+'</span></div></div><div class="pbar"><div class="pbar-fill" style="width:'+(sv.goal>0?Math.min(100,Math.round((sv.saved||0)/sv.goal*100)):0)+'%"></div></div><div style="display:flex;justify-content:space-between;font-size:11px;color:#888"><span>'+(sv.goal>0?Math.min(100,Math.round((sv.saved||0)/sv.goal*100)):0)+'%</span><button class="btn danger" onclick="delSV('+i+')">Remove</button></div></div>').join('')+'</div>':'')+
+  return '<div class="card"><div class="card-title">Add savings goal</div><div class="form-row"><div class="fg"><label>Goal name</label><input id="svN" placeholder="e.g. Emergency fund"></div><div class="fg"><label>Target (£)</label><input id="svG" type="number" placeholder="0.00" step="0.01"></div></div><div class="form-row"><div class="fg"><label>Amount saved so far (£)</label><input id="svS" type="number" placeholder="0.00" step="0.01"></div><div class="fg"><label>Platform</label><input id="svP" placeholder="e.g. Trading 212, eToro"></div></div><div class="btn-row"><button class="btn primary" onclick="addSV()">Add goal</button></div></div>'+
+  (S.savings.length?'<div class="card"><div style="display:flex;justify-content:space-between;margin-bottom:14px"><div class="card-title" style="margin:0">Savings goals</div><div style="font-size:13px;color:#888">'+fmt(tS)+' of '+fmt(tG)+'</div></div>'+S.savings.map((sv,i)=>'<div style="margin-bottom:16px"><div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-weight:500">'+sv.name+(sv.platform?' <span style="font-size:11px;color:#888">via '+sv.platform+'</span>':'')+'</div><div style="font-size:13px">'+fmt(sv.saved||0)+' <span style="color:#888">of '+fmt(sv.goal||0)+'</span></div></div><div class="pbar"><div class="pbar-fill" style="width:'+(sv.goal>0?Math.min(100,Math.round((sv.saved||0)/sv.goal*100)):0)+'%"></div></div><div style="display:flex;justify-content:space-between;font-size:11px;color:#888"><span>'+(sv.goal>0?Math.min(100,Math.round((sv.saved||0)/sv.goal*100)):0)+'% of goal</span><button class="btn danger" onclick="delSV('+i+')">Remove</button></div></div>').join('')+'</div>':'')+
   '<div class="card"><div class="card-title">Add subscription</div><div class="form-row three"><div class="fg"><label>Name</label><input id="suN" placeholder="e.g. Netflix"></div><div class="fg"><label>Amount (£)</label><input id="suA" type="number" placeholder="0.00" step="0.01"></div><div class="fg"><label>Billing cycle</label><select id="suC"><option value="monthly">Monthly</option><option value="annual">Annual</option><option value="weekly">Weekly</option></select></div></div><div class="btn-row"><button class="btn primary" onclick="addSU()">Add subscription</button></div></div>'+
-  (S.subs.length?'<div class="card"><div style="display:flex;justify-content:space-between;margin-bottom:14px"><div class="card-title" style="margin:0">Subscriptions</div><div style="font-size:13px;color:#888">'+fmt(tSub)+'/month</div></div><table class="tbl"><thead><tr><th>Name</th><th>Billing</th><th style="text-align:right">Amount</th><th style="text-align:right">Per month</th><th></th></tr></thead><tbody>'+S.subs.map((sb,i)=>{const mo=sb.cycle==='annual'?sb.amount/12:sb.cycle==='weekly'?sb.amount*52/12:Number(sb.amount);return'<tr><td>'+esc(sb.name)+'</td><td style="color:#888">'+sb.cycle+'</td><td style="text-align:right">'+fmt(sb.amount)+'</td><td style="text-align:right;color:#888">'+fmt(mo)+'</td><td><button class="btn danger" onclick="delSU('+i+')">x</button></td></tr>';}).join('')+'</tbody></table></div>':'');
+  (S.subs.length?'<div class="card"><div style="display:flex;justify-content:space-between;margin-bottom:14px"><div class="card-title" style="margin:0">Subscriptions</div><div style="font-size:13px;color:#888">'+fmt(tSub)+'/month</div></div><table class="tbl"><thead><tr><th>Name</th><th>Billing</th><th style="text-align:right">Amount</th><th style="text-align:right">Per month</th><th></th></tr></thead><tbody>'+S.subs.map((sb,i)=>{const mo=sb.cycle==='annual'?sb.amount/12:sb.cycle==='weekly'?sb.amount*52/12:Number(sb.amount);return'<tr><td>'+sb.name+'</td><td style="color:#888">'+sb.cycle+'</td><td style="text-align:right">'+fmt(sb.amount)+'</td><td style="text-align:right;color:#888">'+fmt(mo)+'</td><td><button class="btn danger" onclick="delSU('+i+')">x</button></td></tr>';}).join('')+'</tbody></table></div>':'');
 }
 
-// ───────── SETTINGS ─────────
 function rSettings(){
-  return '<div class="card"><div class="card-title">Quick fixes <span class="tip" title="One-click maintenance actions for your data.">i</span></div><div class="fix-grid">'+
-  '<button class="fix-btn" onclick="fixDuplicates()" title="Removes transactions with the same date, label, and amount within each period."><span>Remove duplicates <span class="tip" title="Removes transactions with the same date, label, and amount within each period.">i</span></span></button>'+
-  '<button class="fix-btn" onclick="fixReapplyMappings()" title="Re-runs your saved name and category mappings against all existing transactions."><span>Reapply mappings <span class="tip" title="Re-runs your saved name and category mappings against all existing transactions. Useful after adding new mappings.">i</span></span></button>'+
-  '<button class="fix-btn" onclick="fixRedetectPeriods()" title="Re-detects period boundaries based on actual salary arrival dates."><span>Re-detect periods <span class="tip" title="Re-detects period boundaries based on actual salary arrival dates. Run this after manually editing salary tags.">i</span></span></button>'+
-  '<button class="fix-btn" onclick="fixClearEmptyPeriods()" title="Removes periods that have no transactions, income, or other data."><span>Clear empty periods <span class="tip" title="Removes periods that have no transactions, income, expenses, or rollover.">i</span></span></button>'+
-  '<button class="fix-btn danger" onclick="fixClearImports()" title="Wipes all imported transactions across every period. Bills, debts, savings, mappings, and manual entries are kept."><span>Clear all imports <span class="tip" title="Wipes all imported transactions. Bills, debts, savings, mappings kept.">i</span></span></button>'+
-  '</div></div>'+
-  '<div class="card"><div class="card-title">Manage categories</div><div class="alert alert-info">Default categories are locked. You can add custom ones and remove your additions.</div><div class="cat-grid">'+getCats().map(c=>'<div class="cat-pill'+(LOCKED_CATS.includes(c)?' locked':'')+'">'+c+(LOCKED_CATS.includes(c)||DEFAULT_CATS.includes(c)?'':'<span class="x" onclick="delCat(\''+esc(c)+'\')">×</span>')+'</div>').join('')+'</div><div class="form-row"><div class="fg"><label>New category name</label><input id="newCat" placeholder="e.g. Pets, Childcare..."></div></div><div class="btn-row"><button class="btn primary" onclick="addCat()">Add category</button></div></div>'+
-  '<div class="card"><div class="card-title">Add transaction name mapping</div><div class="alert alert-info">Partial matches work — "Cooke Curtis" will match "COOKE CURTIS &amp; CO LTD".</div><div class="form-row three"><div class="fg"><label>Statement text</label><input id="mR" placeholder="e.g. Novuna Personal"></div><div class="fg"><label>Friendly name</label><input id="mL" placeholder="e.g. Furniture Village"></div><div class="fg"><label>Category</label><select id="mC">'+getCats().map(c=>'<option>'+c+'</option>').join('')+'</select></div></div><div class="btn-row"><button class="btn primary" onclick="addMap()">Save mapping</button></div></div>'+
-  '<div class="card"><div class="card-title">Saved mappings ('+Object.keys(S.maps).length+')</div><table class="tbl"><thead><tr><th>Statement text</th><th>Label</th><th>Category</th><th></th></tr></thead><tbody>'+Object.entries(S.maps).map(([k,v])=>'<tr><td style="font-family:monospace;font-size:12px">'+esc(k)+'</td><td>'+esc(v.label)+'</td><td>'+cb(v.cat)+'</td><td><button class="btn danger" onclick="delMap(\''+esc(k).replace(/\\\\/g,"\\\\\\\\")+'\')">x</button></td></tr>').join('')+'</tbody></table></div>'+
-  '<div class="card"><div class="card-title">Period overrides <span class="tip" title="Manually set when a salary period starts. Use if a salary was missed or arrived late.">i</span></div>'+
-  (function(){const boundaries=detectSalaryPeriods();const ov=ld('overrides',{});if(!boundaries.length)return '<div class="empty">No salary periods detected yet.</div>';return '<table class="tbl"><thead><tr><th>Period</th><th>Auto start</th><th>Override</th><th></th></tr></thead><tbody>'+boundaries.map(b=>{const mk=b.month;return '<tr><td>'+(['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][b.obj.getMonth()])+' '+b.obj.getFullYear()+'</td><td>'+b.date+(b.label==='Override'?' (manual)':'')+'</td><td><input type="text" placeholder="DD/MM/YYYY" value="'+(ov[mk]||'')+'" id="ov_'+mk+'" style="font-size:13px;padding:4px 8px;border-radius:4px;border:0.5px solid rgba(0,0,0,0.18);width:120px"></td><td><button class="btn" onclick="saveOverride('+mk+')">Save</button> '+(ov[mk]?'<button class="btn danger" onclick="setOverride('+mk+',null)">Clear</button>':'')+'</td></tr>';}).join('')+'</tbody></table>';})()+
+  return '<div class="card"><div class="card-title">Add transaction name mapping</div><div class="alert alert-info">Partial matches work — "Cooke Curtis" will match "COOKE CURTIS & CO LTD".</div><div class="form-row three"><div class="fg"><label>Statement text</label><input id="mR" placeholder="e.g. Novuna Personal"></div><div class="fg"><label>Friendly name</label><input id="mL" placeholder="e.g. Furniture Village"></div><div class="fg"><label>Category</label><select id="mC">'+CATS.map(c=>'<option>'+c+'</option>').join('')+'</select></div></div><div class="btn-row"><button class="btn primary" onclick="addMap()">Save mapping</button></div></div>'+
+  '<div class="card"><div class="card-title">Saved mappings ('+Object.keys(S.maps).length+')</div><table class="tbl"><thead><tr><th>Statement text</th><th>Label</th><th>Category</th><th></th></tr></thead><tbody>'+Object.entries(S.maps).map(([k,v])=>'<tr><td style="font-family:monospace;font-size:12px">'+k+'</td><td>'+v.label+'</td><td>'+cb(v.cat)+'</td><td><button class="btn danger" onclick="delMap(\''+k.replace(/'/g,"\\'")+'\')" >x</button></td></tr>').join('')+'</tbody></table></div>'+
+  '<div class="card"><div class="card-title">Period overrides</div><div class="alert alert-info">By default, periods start on the day a monthly salary arrives. Use this if a salary was missed or to manually set a period start.</div>'+
+  (function(){const boundaries=detectSalaryPeriods();const ov=ld('overrides',{});if(!boundaries.length)return '<div class="empty">No salary periods detected yet. Import CSVs first.</div>';return '<table class="tbl"><thead><tr><th>Period</th><th>Auto start</th><th>Override</th><th></th></tr></thead><tbody>'+boundaries.map(b=>{const mk=b.month;return '<tr><td>'+(['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][b.obj.getMonth()])+' '+b.obj.getFullYear()+'</td><td>'+b.date+(b.label==='Override'?' (manual)':'')+'</td><td><input type="text" placeholder="DD/MM/YYYY" value="'+(ov[mk]||'')+'" id="ov_'+mk+'" style="font-size:13px;padding:4px 8px;border-radius:4px;border:0.5px solid rgba(0,0,0,0.18);width:120px"></td><td><button class="btn" onclick="saveOverride('+mk+')">Save</button> '+(ov[mk]?'<button class="btn danger" onclick="setOverride('+mk+',null)">Clear</button>':'')+'</td></tr>';}).join('')+'</tbody></table>';})()+
   '</div>'+
-  '<div class="card"><div class="card-title">Data management</div><div class="btn-row"><button class="btn primary" onclick="expD()">Export backup</button><button class="btn" onclick="document.getElementById(\'impJ\').click()">Import backup</button><button class="btn danger" onclick="if(confirm(\'Clear ALL data?\'))clrAll()">Clear all data</button></div><input id="impJ" type="file" accept=".json" style="display:none" onchange="impD(this)"><p style="font-size:12px;color:#888;margin-top:10px">Data lives in this browser. Export regularly as a backup.</p></div>';
+  '<div class="card"><div class="card-title">Data management</div><div class="btn-row"><button class="btn primary" onclick="expD()">Export backup (JSON)</button><button class="btn" onclick="document.getElementById(\'impJ\').click()">Import backup (JSON)</button><button class="btn danger" onclick="if(confirm(\'Clear ALL data?\'))clrAll()">Clear all data</button></div><input id="impJ" type="file" accept=".json" style="display:none" onchange="impD(this)"><p style="font-size:12px;color:#888;margin-top:10px">Data lives in this browser. Export regularly as a backup.</p></div>';
 }
 
-// ───────── ACTIONS ─────────
+
+
+// ─── ACTIONS ─────────────────────────────────────────────────────────────────
 function chgP(k){S.cur=k;sv('cur',k);render();}
+
 function addInc(){const l=document.getElementById('iL').value.trim(),a=parseFloat(document.getElementById('iA').value),w=document.getElementById('iW').value;if(!l||isNaN(a)||a<=0)return alert('Enter description and amount.');snapshot();const p=getP(S.cur);if(!p.extraIncome)p.extraIncome=[];p.extraIncome.push({label:l,amount:a,who:w});sv('periods',S.periods);render();}
 function delEI(i){snapshot();getP(S.cur).extraIncome.splice(i,1);sv('periods',S.periods);render();}
 function addExp(){const l=document.getElementById('eL').value.trim(),a=parseFloat(document.getElementById('eA').value),c=document.getElementById('eC').value;if(!l||isNaN(a)||a<=0)return alert('Enter description and amount.');snapshot();const p=getP(S.cur);if(!p.extraExpenses)p.extraExpenses=[];p.extraExpenses.push({label:l,amount:a,cat:c});sv('periods',S.periods);render();}
 function delEE(i){snapshot();getP(S.cur).extraExpenses.splice(i,1);sv('periods',S.periods);render();}
 function saveRB(){snapshot();const v=parseFloat(document.getElementById('rB').value)||0;getP(S.cur).rollover=v;sv('periods',S.periods);alert('Rollover saved: '+fmt(v));}
 
-// ───────── CSV IMPORT (multi-file + auto-detect) ─────────
 function detectBank(text){const fl=(text.split('\n')[0]||'').toLowerCase();if(fl.includes('card member')||fl.includes('extended details'))return 'amex';if(fl.includes('subcategory')||fl.includes('memo'))return 'barclays';return null;}
 
 async function handleCSV(input){
-  const files=Array.from(input.files);
-  if(!files.length)return;
+  const files=Array.from(input.files);if(!files.length)return;
   snapshot();
-  const allCounts={};let processed=0;
+  const allCounts={};let processed=0,autoDebtsAdded=0;
   for(const file of files){
     const text=await new Promise((res)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.readAsText(file);});
     const bank=detectBank(text);
-    if(!bank){if(!confirm('Could not detect format for '+file.name+'. Skip this file?')){continue;}continue;}
+    if(!bank){if(!confirm('Could not detect format for '+file.name+'. Skip?')){continue;}continue;}
     const txs=parseCSV(text,bank);
     txs.forEach(t=>{
       const pk=dateToCalendarPeriod(t.date);
@@ -379,11 +419,23 @@ async function handleCSV(input){
       else if(t.cat!=='Income'){t.label=t.rawLabel;t.cat=t.cat||'Unknown';}
       t._idx=p.transactions.length;p.transactions.push(t);
       allCounts[pk]=(allCounts[pk]||0)+1;
+      // Auto-create debt payment
+      if(bank==='barclays'&&t.isCredit===false&&t.rawLabel){
+        const u=t.rawLabel.toUpperCase();
+        for(const[kw,debtName] of Object.entries(DEBT_KEYWORDS)){
+          if(u.includes(kw)){
+            const exists=(S.debtPayments||[]).find(dp=>dp.date===t.date&&dp.amount===t.amount&&dp.debt===debtName&&dp.source==='auto');
+            if(!exists){S.debtPayments.push({date:t.date,amount:t.amount,debt:debtName,source:'auto',label:t.rawLabel,_id:'auto_'+Date.now()+'_'+Math.random()});autoDebtsAdded++;}
+            break;
+          }
+        }
+      }
     });
     processed++;
   }
+  if(autoDebtsAdded>0)sv('debtPayments',S.debtPayments);
   sv('periods',S.periods);
-  // Auto re-detect periods based on salary arrivals
+  // Auto re-detect periods
   const boundaries=detectSalaryPeriods();
   if(boundaries.length){
     const allTx=[];Object.entries(S.periods).forEach(([k,p])=>{(p.transactions||[]).forEach(t=>allTx.push(t));});
@@ -391,7 +443,9 @@ async function handleCSV(input){
     allTx.forEach(t=>{const newKey=dynamicPeriodKey(t.date,boundaries);const p=getP(newKey);if(!p.transactions)p.transactions=[];t._idx=p.transactions.length;p.transactions.push(t);applyPeriodLabel(p,boundaries,newKey);});
     sv('periods',S.periods);
   }
-  alert('Processed '+processed+' file(s). '+Object.values(allCounts).reduce((a,b)=>a+b,0)+' transactions imported.');
+  let msg='Processed '+processed+' file(s). '+Object.values(allCounts).reduce((a,b)=>a+b,0)+' transactions imported.';
+  if(autoDebtsAdded>0)msg+='\n\n'+autoDebtsAdded+' debt payment(s) auto-recorded.';
+  alert(msg);
   input.value='';render();
 }
 
@@ -413,8 +467,8 @@ function parseCSV(text,bank){
           for(const ref of orderedRefs){if(fullMemo.includes(ref)){const v=NHS_REF_MAP[ref];incLabel=v.label;incWho=v.who;matched=true;break;}}
           if(!matched){incLabel='NHS Income';incWho='Unknown';}
         } else {incLabel='Income: '+rawLabel;incWho=who||'Unknown';}
-        txs.push({date,rawLabel:rawLabel+' '+fullMemo.replace(rawLabel,'').trim(),amount,label:incLabel,cat:'Income',who:incWho,acc,_idx:0});
-      } else {txs.push({date,rawLabel,amount,label:rawLabel,cat:'Unknown',who,acc,_idx:0});}
+        txs.push({date,rawLabel:rawLabel+' '+fullMemo.replace(rawLabel,'').trim(),amount,label:incLabel,cat:'Income',who:incWho,acc,isCredit:true,_idx:0});
+      } else {txs.push({date,rawLabel,amount,label:rawLabel,cat:'Unknown',who,acc,isCredit:false,_idx:0});}
     }
   } else {
     for(let i=1;i<lines.length;i++){
@@ -438,21 +492,126 @@ function clrPTx(k){if(confirm('Clear imports for '+pShort(k)+'?')){snapshot();S.
 
 function addBill(){const n=document.getElementById('bN').value.trim(),a=parseFloat(document.getElementById('bA').value),d=parseInt(document.getElementById('bD').value)||0;if(!n||isNaN(a))return alert('Enter name and amount.');snapshot();S.bills.push({name:n,amount:a,day:d});sv('bills',S.bills);render();}
 function delBill(i){snapshot();S.bills.splice(i,1);sv('bills',S.bills);render();}
+
 function addDebt(){const n=document.getElementById('dN').value.trim(),b=parseFloat(document.getElementById('dB').value)||0,r=parseFloat(document.getElementById('dR').value)||0,m=parseFloat(document.getElementById('dM').value)||0,x=document.getElementById('dX').value.trim();if(!n)return alert('Enter a debt name.');snapshot();const i=S.debts.findIndex(d=>d.name===n);if(i>=0){if(!S.debts[i].initialBalance&&b>0)S.debts[i].initialBalance=b;Object.assign(S.debts[i],{balance:b,rate:r,minPayment:m,notes:x});}else S.debts.push({name:n,balance:b,initialBalance:b,rate:r,minPayment:m,notes:x});sv('debts',S.debts);render();}
-function delDebt(n){snapshot();S.debts=S.debts.filter(d=>d.name!==n);sv('debts',S.debts);render();}
+function delDebt(n){if(!confirm('Remove '+n+'? Payment history will be lost.'))return;snapshot();S.debts=S.debts.filter(d=>d.name!==n);S.debtPayments=(S.debtPayments||[]).filter(p=>p.debt!==n);sv('debts',S.debts);sv('debtPayments',S.debtPayments);render();}
+
+// ── Debt payment actions ──
+function payDebt(name){
+  const d=S.debts.find(x=>x.name===name);if(!d)return;
+  const amt=Number(d.minPayment||0);
+  if(!amt){return alert('Set a minimum payment first.');}
+  snapshot();
+  const today=new Date();
+  const dateStr=String(today.getDate()).padStart(2,'0')+'/'+String(today.getMonth()+1).padStart(2,'0')+'/'+today.getFullYear();
+  S.debtPayments.push({date:dateStr,amount:amt,debt:name,source:'manual',_id:'man_'+Date.now()+'_'+Math.random()});
+  sv('debtPayments',S.debtPayments);render();
+}
+function payDebtCustom(name){
+  const v=prompt('Enter payment amount for '+name+' (£):');
+  if(!v)return;
+  const amt=parseFloat(v);if(isNaN(amt)||amt<=0)return alert('Invalid amount.');
+  snapshot();
+  const today=new Date();
+  const dateStr=String(today.getDate()).padStart(2,'0')+'/'+String(today.getMonth()+1).padStart(2,'0')+'/'+today.getFullYear();
+  S.debtPayments.push({date:dateStr,amount:amt,debt:name,source:'manual',_id:'man_'+Date.now()+'_'+Math.random()});
+  sv('debtPayments',S.debtPayments);render();
+}
+function undoDebtPayment(name){
+  const list=(S.debtPayments||[]).filter(p=>p.debt===name).sort((a,b)=>{const ai=String(a._id),bi=String(b._id);return bi.localeCompare(ai);});
+  if(!list.length)return alert('No payments to undo for '+name+'.');
+  snapshot();
+  const last=list[0];
+  S.debtPayments=S.debtPayments.filter(p=>p._id!==last._id);
+  sv('debtPayments',S.debtPayments);render();
+}
+function editDebtPayment(id,field,val){snapshot();const p=(S.debtPayments||[]).find(x=>x._id===id);if(p)p[field]=field==='amount'?parseFloat(val)||0:val;sv('debtPayments',S.debtPayments);}
+function delDebtPayment(id){if(!confirm('Delete this payment record?'))return;snapshot();S.debtPayments=(S.debtPayments||[]).filter(p=>p._id!==id);sv('debtPayments',S.debtPayments);render();}
+function updateAmexBal(){
+  const v=prompt('Enter your current Amex statement balance (£):');
+  if(!v)return;
+  const bal=parseFloat(v);if(isNaN(bal))return alert('Invalid amount.');
+  snapshot();
+  const today=new Date();
+  const dateStr=String(today.getDate()).padStart(2,'0')+'/'+String(today.getMonth()+1).padStart(2,'0')+'/'+today.getFullYear();
+  if(!S.amexUpdates)S.amexUpdates=[];
+  S.amexUpdates.push({date:dateStr,balance:bal.toFixed(2),_id:'amex_'+Date.now()});
+  // Also update the Amex debt initial balance to reflect new statement balance
+  const amex=S.debts.find(d=>d.name.toLowerCase()==='amex');
+  if(amex){const paid=debtPaidTotal('Amex');amex.initialBalance=bal+paid;}
+  sv('amexUpdates',S.amexUpdates);sv('debts',S.debts);render();
+}
+
+// ── Plan It payment actions ──
 function addPI(){const n=document.getElementById('piN').value.trim(),item=document.getElementById('piI').value.trim(),t=parseFloat(document.getElementById('piT').value)||0,p=parseFloat(document.getElementById('piP').value)||0,m=parseInt(document.getElementById('piM').value)||0,e=document.getElementById('piE').value,x=document.getElementById('piX').value.trim();if(!n||!p)return alert('Enter a name and monthly payment.');snapshot();if(!S.planIts)S.planIts=[];S.planIts.push({name:n,item,total:t,monthlyPayment:p,monthsRemaining:m,endDate:e,notes:x});sv('planIts',S.planIts);render();}
-function delPI(i){snapshot();S.planIts.splice(i,1);sv('planIts',S.planIts);render();}
+function delPI(i){if(!confirm('Remove this Plan It? Payment history will be lost.'))return;snapshot();const name=S.planIts[i].name;S.planIts.splice(i,1);S.planItPayments=(S.planItPayments||[]).filter(p=>p.plan!==name);sv('planIts',S.planIts);sv('planItPayments',S.planItPayments);render();}
+function payPlanIt(name){
+  const p=S.planIts.find(x=>x.name===name);if(!p)return;
+  snapshot();
+  const today=new Date();
+  const dateStr=String(today.getDate()).padStart(2,'0')+'/'+String(today.getMonth()+1).padStart(2,'0')+'/'+today.getFullYear();
+  S.planItPayments.push({date:dateStr,amount:Number(p.monthlyPayment),plan:name,_id:'pi_'+Date.now()+'_'+Math.random()});
+  sv('planItPayments',S.planItPayments);render();
+}
+function undoPlanItPayment(name){
+  const list=(S.planItPayments||[]).filter(p=>p.plan===name).sort((a,b)=>String(b._id).localeCompare(String(a._id)));
+  if(!list.length)return alert('No payments to undo.');
+  snapshot();
+  S.planItPayments=S.planItPayments.filter(p=>p._id!==list[0]._id);
+  sv('planItPayments',S.planItPayments);render();
+}
+function delPlanItPayment(id){if(!confirm('Delete this payment?'))return;snapshot();S.planItPayments=(S.planItPayments||[]).filter(p=>p._id!==id);sv('planItPayments',S.planItPayments);render();}
+function payAllPlanIts(){
+  const due=(S.planIts||[]).filter(p=>{const paid=(S.planItPayments||[]).filter(pp=>pp.plan===p.name).length;return paid<Number(p.monthsRemaining||0);});
+  if(!due.length)return alert('No plans to pay.');
+  if(!confirm('Pay all '+due.length+' active Plan Its for this month?'))return;
+  snapshot();
+  const today=new Date();
+  const dateStr=String(today.getDate()).padStart(2,'0')+'/'+String(today.getMonth()+1).padStart(2,'0')+'/'+today.getFullYear();
+  due.forEach(p=>S.planItPayments.push({date:dateStr,amount:Number(p.monthlyPayment),plan:p.name,_id:'pi_'+Date.now()+'_'+Math.random()}));
+  sv('planItPayments',S.planItPayments);render();
+}
+function undoLastPlanItPayment(){
+  if(!(S.planItPayments||[]).length)return alert('No payments to undo.');
+  snapshot();
+  const sorted=S.planItPayments.slice().sort((a,b)=>String(b._id).localeCompare(String(a._id)));
+  S.planItPayments=S.planItPayments.filter(p=>p._id!==sorted[0]._id);
+  sv('planItPayments',S.planItPayments);render();
+}
+
+// ── Philippines actions ──
+function addPhBank(){const n=document.getElementById('bkN').value.trim(),b=parseFloat(document.getElementById('bkB').value)||0,x=document.getElementById('bkX').value.trim();if(!n)return alert('Enter bank name.');snapshot();S.phBanks.push({name:n,balance:b,notes:x});sv('phBanks',S.phBanks);render();}
+function delPhBank(i){if(!confirm('Remove this bank?'))return;snapshot();S.phBanks.splice(i,1);sv('phBanks',S.phBanks);render();}
+function setPhBankBalance(i,v){snapshot();S.phBanks[i].balance=parseFloat(v)||0;sv('phBanks',S.phBanks);}
+function confirmTransfer(pk,idx,tid){
+  const phpVal=document.getElementById(tid+'_php').value;
+  const bank=document.getElementById(tid+'_bank').value;
+  const php=parseFloat(phpVal);
+  if(!php||php<=0)return alert('Enter PHP amount received.');
+  if(!bank)return alert('Select a bank.');
+  const tx=findT(idx,pk);if(!tx)return alert('Transaction not found.');
+  snapshot();
+  S.phTransfers.push({gbpDate:tx.t.date,gbpAmount:tx.t.amount,phpAmount:php,bank,_id:'tr_'+Date.now()+'_'+Math.random()});
+  // Increase target bank balance
+  const b=S.phBanks.find(x=>x.name===bank);if(b)b.balance=Number(b.balance||0)+php;
+  sv('phTransfers',S.phTransfers);sv('phBanks',S.phBanks);render();
+}
+function delTransfer(id){if(!confirm('Delete this transfer record? Bank balance will be reduced.'))return;snapshot();const tr=S.phTransfers.find(x=>x._id===id);if(tr){const b=S.phBanks.find(x=>x.name===tr.bank);if(b)b.balance=Math.max(0,Number(b.balance||0)-Number(tr.phpAmount));}S.phTransfers=S.phTransfers.filter(x=>x._id!==id);sv('phTransfers',S.phTransfers);sv('phBanks',S.phBanks);render();}
+function addPhTx(){const date=document.getElementById('phD').value,bank=document.getElementById('phB').value,a=parseFloat(document.getElementById('phA').value),l=document.getElementById('phL').value.trim(),c=document.getElementById('phC').value;if(!date||!bank||isNaN(a)||!l)return alert('Fill in all fields.');snapshot();const dp=date.split('-');const dateStr=dp[2]+'/'+dp[1]+'/'+dp[0];S.phTxs.push({date:dateStr,bank,amount:a,label:l,cat:c,_id:'ph_'+Date.now()+'_'+Math.random()});const b=S.phBanks.find(x=>x.name===bank);if(b)b.balance=Number(b.balance||0)+a;sv('phTxs',S.phTxs);sv('phBanks',S.phBanks);render();}
+function delPhTx(id){if(!confirm('Delete this PHP transaction? Bank balance will adjust.'))return;snapshot();const t=S.phTxs.find(x=>x._id===id);if(t){const b=S.phBanks.find(x=>x.name===t.bank);if(b)b.balance=Number(b.balance||0)-Number(t.amount);}S.phTxs=S.phTxs.filter(x=>x._id!==id);sv('phTxs',S.phTxs);sv('phBanks',S.phBanks);render();}
+
 function addSV(){const n=document.getElementById('svN').value.trim(),g=parseFloat(document.getElementById('svG').value)||0,s=parseFloat(document.getElementById('svS').value)||0,p=document.getElementById('svP').value.trim();if(!n)return alert('Enter a goal name.');snapshot();S.savings.push({name:n,goal:g,saved:s,platform:p});sv('savings',S.savings);render();}
 function delSV(i){snapshot();S.savings.splice(i,1);sv('savings',S.savings);render();}
 function addSU(){const n=document.getElementById('suN').value.trim(),a=parseFloat(document.getElementById('suA').value)||0,c=document.getElementById('suC').value;if(!n||!a)return alert('Enter name and amount.');snapshot();S.subs.push({name:n,amount:a,cycle:c});sv('subs',S.subs);render();}
 function delSU(i){snapshot();S.subs.splice(i,1);sv('subs',S.subs);render();}
-function addMap(){const r=document.getElementById('mR').value.trim(),l=document.getElementById('mL').value.trim(),c=document.getElementById('mC').value;if(!r||!l)return alert('Fill in both fields.');snapshot();S.maps[r]={label:l,cat:c};sv('maps',S.maps);render();}
+function addMap(){const r=document.getElementById('mR').value.trim(),l=document.getElementById('mL').value.trim(),c=document.getElementById('mC').value;if(!r||!l)return alert('Fill both fields.');snapshot();S.maps[r]={label:l,cat:c};sv('maps',S.maps);render();}
 function delMap(k){snapshot();delete S.maps[k];sv('maps',S.maps);render();}
-function addCat(){const n=document.getElementById('newCat').value.trim();if(!n)return alert('Enter a category name.');if(getCats().includes(n))return alert('Already exists.');snapshot();S.customCats.push(n);sv('customCats',S.customCats);render();}
-function delCat(c){if(LOCKED_CATS.includes(c)||DEFAULT_CATS.includes(c))return alert('Cannot delete default categories.');if(!confirm('Delete category "'+c+'"? Transactions using it will keep the label but the option won\'t appear in dropdowns.'))return;snapshot();S.customCats=S.customCats.filter(x=>x!==c);sv('customCats',S.customCats);render();}
+function addCat(){const n=document.getElementById('newCat').value.trim();if(!n)return alert('Enter a name.');if(getCats().includes(n))return alert('Already exists.');snapshot();S.customCats.push(n);sv('customCats',S.customCats);render();}
+function delCat(c){if(LOCKED_CATS.includes(c)||DEFAULT_CATS.includes(c))return alert('Cannot delete defaults.');if(!confirm('Delete category "'+c+'"?'))return;snapshot();S.customCats=S.customCats.filter(x=>x!==c);sv('customCats',S.customCats);render();}
+function saveOverride(mk){const v=document.getElementById('ov_'+mk).value.trim();if(!v){alert('Enter date in DD/MM/YYYY.');return;}if(!/^\d{2}\/\d{2}\/\d{4}$/.test(v)){alert('Format DD/MM/YYYY.');return;}setOverride(mk,v);}
 
-function expD(){const blob=new Blob([JSON.stringify({maps:S.maps,bills:S.bills,debts:S.debts,periods:S.periods,subs:S.subs,savings:S.savings,planIts:S.planIts||[],customCats:S.customCats||[]},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='hub-waf-budget-backup.json';a.click();}
-function impD(input){const file=input.files[0];if(!file)return;snapshot();const reader=new FileReader();reader.onload=e=>{try{const d=JSON.parse(e.target.result);if(d.maps)S.maps=d.maps;if(d.bills)S.bills=d.bills;if(d.debts)S.debts=d.debts;if(d.periods)S.periods=d.periods;if(d.subs)S.subs=d.subs;if(d.savings)S.savings=d.savings;if(d.planIts)S.planIts=d.planIts;if(d.customCats)S.customCats=d.customCats;sv('maps',S.maps);sv('bills',S.bills);sv('debts',S.debts);sv('periods',S.periods);sv('subs',S.subs);sv('savings',S.savings);sv('planIts',S.planIts);sv('customCats',S.customCats);render();}catch(e){alert('Invalid JSON.');}};reader.readAsText(file);input.value='';}
+function expD(){const blob=new Blob([JSON.stringify({maps:S.maps,bills:S.bills,debts:S.debts,periods:S.periods,subs:S.subs,savings:S.savings,planIts:S.planIts,customCats:S.customCats,phBanks:S.phBanks,phTxs:S.phTxs,phTransfers:S.phTransfers,debtPayments:S.debtPayments,planItPayments:S.planItPayments,amexUpdates:S.amexUpdates},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='hub-waf-budget-backup.json';a.click();}
+function impD(input){const file=input.files[0];if(!file)return;snapshot();const reader=new FileReader();reader.onload=e=>{try{const d=JSON.parse(e.target.result);Object.keys(d).forEach(k=>{if(S[k]!==undefined)S[k]=d[k];});Object.keys(S).forEach(k=>sv(k,S[k]));render();}catch(e){alert('Invalid JSON.');}};reader.readAsText(file);input.value='';}
 function clrAll(){localStorage.clear();location.reload();}
 
 render();
